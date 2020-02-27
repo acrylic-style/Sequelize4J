@@ -1,9 +1,12 @@
 package xyz.acrylicstyle.sql;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import util.CollectionList;
+import util.ICollectionList;
 import util.StringCollection;
 import xyz.acrylicstyle.sql.options.FindOptions;
+import xyz.acrylicstyle.sql.options.IncrementOptions;
 import xyz.acrylicstyle.sql.options.InsertOptions;
 import xyz.acrylicstyle.sql.options.UpsertOptions;
 import xyz.acrylicstyle.sql.utils.Validate;
@@ -74,8 +77,9 @@ public class TableData implements ITable {
      * {@inheritDoc}
      */
     @Override
-    public TableData update(String field, Object value, FindOptions options) throws SQLException {
+    public CollectionList<TableData> update(String field, Object value, FindOptions options) throws SQLException {
         Validate.isTrue(field.matches(Sequelize.FIELD_NAME_REGEX.pattern()), "Field " + field + " must match following pattern: " + Sequelize.FIELD_NAME_REGEX.pattern());
+        CollectionList<TableData> dataList = findAll(options);
         StringBuilder sb = new StringBuilder("update " + getName() + " set ?=?");
         if (options != null && options.where() != null) {
             sb.append(" where ");
@@ -87,16 +91,22 @@ public class TableData implements ITable {
         statement.setObject(2, value);
         statement.executeUpdate();
         values.add(field, value);
-        return this;
+        return dataList.map(td -> {
+            StringCollection<Object> values = td.getValues();
+            values.add(field, value);
+            td.setValues(values);
+            return td;
+        });
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public TableData update(@NotNull String field, @NotNull UpsertOptions options) throws SQLException {
+    public CollectionList<TableData> update(@NotNull String field, @NotNull UpsertOptions options) throws SQLException {
         Validate.isTrue(field.matches(Sequelize.FIELD_NAME_REGEX.pattern()), "Field " + field + " must match following pattern: " + Sequelize.FIELD_NAME_REGEX.pattern());
         Validate.isTrue(options.getValues() != null && options.getValues().size() != 0, "Values must be specified.");
+        CollectionList<TableData> dataList = findAll(options);
         String columns = options.getValues().keysList().map(s -> s + " = ?").join(", ");
         StringBuilder sb = new StringBuilder("update " + getName() + " set " + columns);
         if (options.where() != null) {
@@ -113,17 +123,21 @@ public class TableData implements ITable {
             }
         });
         statement.executeUpdate();
-        return new TableData(table, connection, definitions, options.getValues());
+        return dataList.map(td -> {
+            td.setValues(options.getValues());
+            return td;
+        });
     }
 
     /**
      * {@inheritDoc}
+     * @return
      */
     @Override
-    public TableData upsert(String field, UpsertOptions options) throws SQLException {
+    public CollectionList<TableData> upsert(String field, UpsertOptions options) throws SQLException {
         Validate.isTrue(field.matches(Sequelize.FIELD_NAME_REGEX.pattern()), "Field " + field + " must match following pattern: " + Sequelize.FIELD_NAME_REGEX.pattern());
         if (findAll(options).size() == 0) {
-            return insert(field, options);
+            return ICollectionList.ArrayOf(insert(field, options));
         } else {
             return update(field, options);
         }
@@ -160,11 +174,12 @@ public class TableData implements ITable {
 
     /**
      * {@inheritDoc}
-     * @return This instance.
      */
     @Override
-    public TableData delete(@NotNull FindOptions options) throws SQLException {
+    @Nullable
+    public CollectionList<TableData> delete(@NotNull FindOptions options) throws SQLException {
         Validate.isTrue(options.where() != null && options.where().size() != 0, "FindOptions(with where clause) must be provided.");
+        CollectionList<TableData> dataList = findAll(options);
         StringBuilder sb = new StringBuilder("delete from " + getName());
         if (options.where() != null) {
             sb.append(" where ");
@@ -173,7 +188,35 @@ public class TableData implements ITable {
         sb.append(";");
         Statement statement = connection.createStatement();
         statement.executeUpdate(sb.toString());
-        return this;
+        return dataList;
+    }
+
+    @Override
+    public void increment(@NotNull IncrementOptions options) throws SQLException {
+        Validate.isTrue(options.getFieldsMap() != null && options.getFieldsMap().size() != 0, "IncrementOptions(with fieldsMap) must be provided.");
+        CollectionList<TableData> data = findAll(options);
+        if (data == null) return;
+        data.forEach(t -> options.getFieldsMap().forEach((k, i) -> {
+            try {
+                t.update(k, t.get(k, Integer.class) + i, options);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }));
+    }
+
+    @Override
+    public void decrement(@NotNull IncrementOptions options) throws SQLException {
+        Validate.isTrue(options.getFieldsMap() != null && options.getFieldsMap().size() != 0, "IncrementOptions(with fieldsMap) must be provided.");
+        CollectionList<TableData> data = findAll(options);
+        if (data == null) return;
+        data.forEach(t -> options.getFieldsMap().forEach((k, i) -> {
+            try {
+                t.update(k, t.get(k, Integer.class) - i, options);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }));
     }
 
     /**

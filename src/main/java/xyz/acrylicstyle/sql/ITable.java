@@ -1,5 +1,7 @@
 package xyz.acrylicstyle.sql;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import util.CollectionList;
 import xyz.acrylicstyle.sql.options.*;
 
@@ -32,25 +34,25 @@ public interface ITable extends IUtils {
      * @return Updated table data.
      * @throws SQLException When couldn't do sql stuff for some reason
      */
-    TableData update(String field, Object value, FindOptions options) throws SQLException;
+    CollectionList<TableData> update(String field, Object value, FindOptions options) throws SQLException;
 
     /**
      * Updates multiple data.
      * @param field Name of field
      * @param options Options that contains values, and where clause.
-     * @return Updated table data.
+     * @return Updated table data list.
      * @throws SQLException When SQL action fails
      */
-    TableData update(String field, UpsertOptions options) throws SQLException;
+    CollectionList<TableData> update(String field, UpsertOptions options) throws SQLException;
 
     /**
      * Insert a data if not exists, Update a data if exists.
      * @param field Name of field
      * @param options Upsert Options. Required.
-     * @return Created or Updated Table data.
+     * @return Created or Updated Table data list.
      * @throws SQLException When couldn't do sql stuff for some reason
      */
-    TableData upsert(String field, UpsertOptions options) throws SQLException;
+    CollectionList<TableData> upsert(String field, UpsertOptions options) throws SQLException;
 
     /**
      * Insert a data into table.
@@ -71,8 +73,18 @@ public interface ITable extends IUtils {
      * Delete a data from table.
      * <b>This action cannot be undone!</b>
      * @param options FindOptions. Required.
-     * @return Deleted table data.
      * @throws SQLException When SQL action fails
      */
-    TableData delete(FindOptions options) throws SQLException;
+    @Nullable
+    CollectionList<TableData> delete(FindOptions options) throws SQLException;
+
+    /**
+     * Increase a value by specified value.
+     */
+    void increment(IncrementOptions options) throws SQLException;
+
+    /**
+     * Decrease a value by specified value.
+     */
+    void decrement(IncrementOptions options) throws SQLException;
 }
