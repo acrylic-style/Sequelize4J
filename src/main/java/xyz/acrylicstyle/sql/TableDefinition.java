@@ -1,5 +1,7 @@
 package xyz.acrylicstyle.sql;
 
+import xyz.acrylicstyle.sql.utils.Validate;
+
 public abstract class TableDefinition {
     /**
      * @return Name of field. Required.
@@ -11,7 +13,7 @@ public abstract class TableDefinition {
      */
     public abstract DataType getType();
 
-    public boolean isRequired() { return (getDefaultValue() == null || !allowNull()) && !isAutoIncrement(); }
+    public final boolean isRequired() { return (getDefaultValue() == null || !allowNull()) && !isAutoIncrement(); }
 
     /**
      * @return If it's specified as primary key. False by default.
@@ -32,4 +34,74 @@ public abstract class TableDefinition {
      * @return Does allow null or not. True by default.
      */
     public boolean allowNull() { return true; }
+
+    public static class Builder {
+        private String name;
+        private DataType dataType;
+        private boolean primaryKey = false;
+        private boolean autoIncrement = false;
+        private Object defaultValue = null;
+        private boolean allowNull = true;
+
+        public Builder(String name, DataType dataType) {
+            Validate.notNull(name, "Name cannot be null");
+            Validate.notNull(dataType, "Data type cannot be null");
+            this.name = name;
+            this.dataType = dataType;
+        }
+
+        public Builder setPrimaryKey(boolean b) {
+            this.primaryKey = b;
+            return this;
+        }
+
+        public Builder setAutoIncrement(boolean b) {
+            this.autoIncrement = b;
+            return this;
+        }
+
+        public Builder setDefaultValue(Object o) {
+            this.defaultValue = o;
+            return this;
+        }
+
+        public Builder setAllowNull(boolean b) {
+            this.allowNull = b;
+            return this;
+        }
+
+        public TableDefinition build() {
+            return new TableDefinition() {
+                @Override
+                public String getName() {
+                    return name;
+                }
+
+                @Override
+                public DataType getType() {
+                    return dataType;
+                }
+
+                @Override
+                public boolean isAutoIncrement() {
+                    return autoIncrement;
+                }
+
+                @Override
+                public boolean allowNull() {
+                    return allowNull;
+                }
+
+                @Override
+                public boolean isPrimaryKey() {
+                    return primaryKey;
+                }
+
+                @Override
+                public Object getDefaultValue() {
+                    return defaultValue;
+                }
+            };
+        }
+    }
 }
