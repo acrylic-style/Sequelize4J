@@ -3,10 +3,10 @@ package xyz.acrylicstyle.sql.options;
 import java.util.HashMap;
 import java.util.Map;
 
-public class FindOptions {
-    public Map<String, Object> where() { return null; }
+public interface FindOptions {
+    default Map<String, Object> where() { return null; }
 
-    public static class Builder {
+    class Builder {
         private Map<String, Object> where;
 
         public Builder() {

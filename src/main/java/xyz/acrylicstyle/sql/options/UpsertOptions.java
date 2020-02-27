@@ -1,20 +1,18 @@
 package xyz.acrylicstyle.sql.options;
 
-import util.Collection;
+import util.StringCollection;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class UpsertOptions extends FindOptions {
-    public Map<String, Object> getDefaults() { return null; }
-
-    public static class Builder {
+public interface UpsertOptions extends FindOptions, InsertOptions {
+    class Builder {
         private Map<String, Object> where;
-        private Collection<String, Object> defaults;
+        private StringCollection<Object> values;
 
         public Builder() {
             this.where = new HashMap<>();
-            this.defaults = new Collection<>();
+            this.values = new StringCollection<>();
         }
 
         public UpsertOptions.Builder addWhere(String key, Object value) {
@@ -22,8 +20,8 @@ public class UpsertOptions extends FindOptions {
             return this;
         }
 
-        public UpsertOptions.Builder addDefault(String key, Object value) {
-            defaults.put(key, value);
+        public UpsertOptions.Builder addValue(String key, Object value) {
+            values.put(key, value);
             return this;
         }
 
@@ -35,8 +33,8 @@ public class UpsertOptions extends FindOptions {
                 }
 
                 @Override
-                public Collection<String, Object> getDefaults() {
-                    return Builder.this.defaults;
+                public StringCollection<Object> getValues() {
+                    return Builder.this.values;
                 }
             };
         }

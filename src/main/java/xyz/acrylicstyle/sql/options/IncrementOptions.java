@@ -6,18 +6,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public class IncrementOptions extends FindOptions {
-    private String field = null;
-    private String[] fields = null;
-    private HashMap<String, Integer> fieldsMap = null;
+public interface IncrementOptions extends FindOptions {
+    default String getField() { return null; }
 
-    public String getField() { return field; }
+    default String[] getFields() { return null; }
 
-    public String[] getFields() { return fields; }
+    default HashMap<String, Integer> getFieldsMap() { return null; }
 
-    public HashMap<String, Integer> getFieldsMap() { return fieldsMap; }
-
-    public static class Builder {
+    class Builder {
         private Map<String, Object> where;
         private HashMap<String, Integer> fieldsMap;
         private String[] fields;
