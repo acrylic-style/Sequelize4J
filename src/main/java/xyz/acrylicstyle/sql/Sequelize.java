@@ -3,7 +3,6 @@ package xyz.acrylicstyle.sql;
 import util.CollectionList;
 import util.ICollectionList;
 import util.StringCollection;
-import xyz.acrylicstyle.sql.utils.Validate;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -24,9 +23,9 @@ public class Sequelize implements ISQLUtils {
 
     public static void loadDriver() {
         try {
-            Class.forName("com.mysql.jdbc.Driver");
+            Class.forName("com.mysql.cj.jdbc.Driver");
         } catch (ClassNotFoundException e) {
-            throw new RuntimeException("Couldn't find com.mysql.jdbc.Driver class!");
+            throw new RuntimeException("Couldn't find com.mysql.cj.jdbc.Driver class!");
         }
     }
 
@@ -56,7 +55,7 @@ public class Sequelize implements ISQLUtils {
     public void ping() throws SQLException {
         try {
             Statement statement = Validate.notNull(connection, "Connection hasn't made yet.").createStatement();
-            statement.execute("select version();");
+            statement.execute("select 1;");
         } catch (SQLException e) {
             authenticate();
         }
@@ -66,6 +65,10 @@ public class Sequelize implements ISQLUtils {
     public void close() throws SQLException {
         Validate.notNull(connection, "Connection hasn't made yet.").close();
         connection = null;
+    }
+
+    public void sync() throws SQLException {
+        sync(false);
     }
 
     /**

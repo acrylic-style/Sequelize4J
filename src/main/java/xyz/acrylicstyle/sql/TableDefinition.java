@@ -1,7 +1,5 @@
 package xyz.acrylicstyle.sql;
 
-import xyz.acrylicstyle.sql.utils.Validate;
-
 public abstract class TableDefinition {
     /**
      * @return Name of field. Required.

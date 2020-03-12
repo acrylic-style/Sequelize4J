@@ -1,11 +1,12 @@
 package xyz.acrylicstyle.sql;
 
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import util.CollectionList;
-import xyz.acrylicstyle.sql.options.*;
-
-import java.sql.SQLException;
+import util.promise.Promise;
+import xyz.acrylicstyle.sql.options.FindOptions;
+import xyz.acrylicstyle.sql.options.IncrementOptions;
+import xyz.acrylicstyle.sql.options.InsertOptions;
+import xyz.acrylicstyle.sql.options.UpsertOptions;
 
 public interface ITable extends IUtils {
     String getName();
@@ -14,17 +15,15 @@ public interface ITable extends IUtils {
      * Finds multiple datas from table.
      * @param options FindOptions. Required.
      * @return Found table datas. Can be converted into array using {@link CollectionList#toArray(Object[])} or {@link CollectionList#toArray()}
-     * @throws SQLException When SQL action fails
      */
-    CollectionList<TableData> findAll(FindOptions options) throws SQLException;
+    Promise<CollectionList<TableData>> findAll(FindOptions options);
 
     /**
      * Finds a data from table. If multiple data was found, the first data will be returned.
      * @param options FindOptions. Required.
      * @return Found table data.
-     * @throws SQLException When SQL action fails
      */
-    TableData findOne(FindOptions options) throws SQLException;
+    Promise<TableData> findOne(FindOptions options);
 
     /**
      * Updates a data.
@@ -32,59 +31,54 @@ public interface ITable extends IUtils {
      * @param value Value
      * @param options Find Options. Required.
      * @return Updated table data.
-     * @throws SQLException When couldn't do sql stuff for some reason
      */
-    CollectionList<TableData> update(String field, Object value, FindOptions options) throws SQLException;
+    Promise<CollectionList<TableData>> update(String field, Object value, FindOptions options);
 
     /**
      * Updates multiple data.
      * @param field Name of field
      * @param options Options that contains values, and where clause.
      * @return Updated table data list.
-     * @throws SQLException When SQL action fails
      */
-    CollectionList<TableData> update(String field, UpsertOptions options) throws SQLException;
+    Promise<CollectionList<TableData>> update(String field, UpsertOptions options);
 
     /**
      * Insert a data if not exists, Update a data if exists.
      * @param field Name of field
      * @param options Upsert Options. Required.
      * @return Created or Updated Table data list.
-     * @throws SQLException When couldn't do sql stuff for some reason
      */
-    CollectionList<TableData> upsert(String field, UpsertOptions options) throws SQLException;
+    Promise<CollectionList<TableData>> upsert(String field, UpsertOptions options);
 
     /**
      * Insert a data into table.
-     * @param field Name of field.
      * @param options Insert options. Required.
      * @return Created table data.
-     * @throws SQLException When couldn't do sql stuff for some reason
      */
-    TableData insert(String field, InsertOptions options) throws SQLException;
+    Promise<TableData> insert(InsertOptions options);
 
     /**
      * Drops(Delete) entire table.<br>
      * <b>This action cannot be undone!</b>
      */
-    void drop() throws SQLException;
+    Promise<Void> drop();
 
     /**
      * Delete a data from table.
      * <b>This action cannot be undone!</b>
      * @param options FindOptions. Required.
-     * @throws SQLException When SQL action fails
+     * @return Deleted rows
      */
-    @Nullable
-    CollectionList<TableData> delete(FindOptions options) throws SQLException;
+    @NotNull
+    Promise<CollectionList<TableData>> delete(FindOptions options);
 
     /**
      * Increase a value by specified value.
      */
-    void increment(IncrementOptions options) throws SQLException;
+    Promise<Void> increment(IncrementOptions options);
 
     /**
      * Decrease a value by specified value.
      */
-    void decrement(IncrementOptions options) throws SQLException;
+    Promise<Void> decrement(IncrementOptions options);
 }

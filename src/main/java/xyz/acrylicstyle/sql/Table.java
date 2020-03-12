@@ -1,17 +1,21 @@
 package xyz.acrylicstyle.sql;
 
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import util.CollectionList;
+import util.ICollection;
 import util.ICollectionList;
 import util.StringCollection;
+import util.promise.Promise;
 import xyz.acrylicstyle.sql.options.FindOptions;
 import xyz.acrylicstyle.sql.options.IncrementOptions;
 import xyz.acrylicstyle.sql.options.InsertOptions;
 import xyz.acrylicstyle.sql.options.UpsertOptions;
-import xyz.acrylicstyle.sql.utils.Validate;
+
+import static util.promise.Promise.async;
+import static util.promise.Promise.await;
 
 import java.sql.*;
+import java.util.Collection;
 
 public class Table implements ITable {
     private String name;
@@ -38,37 +42,102 @@ public class Table implements ITable {
      * {@inheritDoc}
      */
     @Override
-    public CollectionList<TableData> findAll(FindOptions options) throws SQLException {
-        StringBuilder sb = new StringBuilder("select * from " + getName());
-        if (options != null && options.where() != null) {
-            sb.append(" where ");
-            options.where().forEach((k, v) -> sb.append(k).append("=").append(v).append(" "));
-        }
-        sb.append(";");
-        Statement statement = connection.createStatement();
-        ResultSet result = statement.executeQuery(sb.toString());
-        CollectionList<TableData> tableData = new CollectionList<>();
-        while (result.next()) {
-            StringCollection<Object> v = new StringCollection<>();
-            getDefinitions().forEach((k, d) -> {
+    public Promise<CollectionList<TableData>> findAll(FindOptions options) {
+        return new Promise<CollectionList<TableData>>() {
+            @Override
+            public CollectionList<TableData> apply(Object o0) {
                 try {
-                    v.add(k, result.getObject(k));
+                    StringBuilder sb = new StringBuilder("select * from " + getName());
+                    CollectionList<Object> values = new CollectionList<>();
+                    if (options != null && options.where() != null) {
+                        sb.append(" where ");
+                        options.where().forEach((k, v) -> {
+                            values.add(v);
+                            sb.append(k).append("=?").append(" ");
+                        });
+                    }
+                    sb.append(";");
+                    PreparedStatement statement = connection.prepareStatement(sb.toString());
+                    values.foreach((o, i) -> {
+                        try {
+                            statement.setObject(i + 1, o);
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                        }
+                    });
+                    ResultSet result = statement.executeQuery();
+                    CollectionList<TableData> tableData = new CollectionList<>();
+                    while (result.next()) {
+                        StringCollection<Object> v = new StringCollection<>();
+                        getDefinitions().forEach((k, d) -> {
+                            try {
+                                v.add(k, result.getObject(k));
+                            } catch (SQLException e) {
+                                e.printStackTrace();
+                            }
+                        });
+                        tableData.add(new TableData(Table.this, connection, getDefinitions(), v));
+                    }
+                    return tableData;
                 } catch (SQLException e) {
-                    e.printStackTrace();
+                    throw new RuntimeException(e);
                 }
-            });
-            tableData.add(new TableData(this, connection, getDefinitions(), v));
-        }
-        return tableData;
+            }
+        };
     }
 
     /**
      * {@inheritDoc}
      */
+    @SuppressWarnings("unchecked")
     @Override
-    public TableData findOne(FindOptions options) throws SQLException {
-        CollectionList<TableData> list = findAll(options);
-        return list.size() == 0 ? null : list.first();
+    public Promise<TableData> findOne(FindOptions options) {
+        return async(o0 -> {
+            CollectionList<TableData> list = (CollectionList<TableData>) await(findAll(options), null);
+            return list.size() == 0 ? null : list.first();
+        });
+    }
+
+    /**
+     * {@inheritDoc}
+     * @return
+     */
+    @SuppressWarnings("unchecked")
+    @Override
+    public Promise<CollectionList<TableData>> update(String field, Object value, FindOptions options) {
+        Validate.isTrue(field.matches(Sequelize.FIELD_NAME_REGEX.pattern()), "Field " + field + " must match following pattern: " + Sequelize.FIELD_NAME_REGEX.pattern());
+        return async(o1 -> {
+            try {
+                CollectionList<TableData> dataList = (CollectionList<TableData>) await(findAll(options), null);
+                StringBuilder sb = new StringBuilder("update " + getName() + " set " + field + "=?");
+                CollectionList<Object> values = new CollectionList<>();
+                if (options != null && options.where() != null) {
+                    sb.append(" where ");
+                    ICollection.asCollection(options.where()).forEach((k, v, i, a) -> {
+                        values.add(v);
+                        sb.append(k).append("=?");
+                        if (i != 0) sb.append(",");
+                    });
+                }
+                sb.append(";");
+                PreparedStatement statement = connection.prepareStatement(sb.toString());
+                statement.setObject(1, value);
+                values.foreach((o, i) -> {
+                    try {
+                        statement.setObject(i + 2, o);
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
+                });
+                statement.executeUpdate();
+                return dataList.map(td -> {
+                    StringCollection<Object> values2 = td.getValues();
+                    values2.add(field, value);
+                    td.setValues(values2);
+                    return td;
+                });
+            } catch (SQLException e) { throw new RuntimeException(e); }
+        });
     }
 
     /**
@@ -76,65 +145,49 @@ public class Table implements ITable {
      * @return
      */
     @Override
-    public CollectionList<TableData> update(String field, Object value, FindOptions options) throws SQLException {
-        Validate.isTrue(field.matches(Sequelize.FIELD_NAME_REGEX.pattern()), "Field " + field + " must match following pattern: " + Sequelize.FIELD_NAME_REGEX.pattern());
-        CollectionList<TableData> dataList = findAll(options);
-        StringBuilder sb = new StringBuilder("update " + getName() + " set ?=?");
-        if (options != null && options.where() != null) {
-            sb.append(" where ");
-            options.where().forEach((k, v) -> sb.append(k).append("=").append(v).append(" "));
-        }
-        sb.append(";");
-        PreparedStatement statement = connection.prepareStatement(sb.toString());
-        statement.setString(1, field);
-        statement.setObject(2, value);
-        statement.executeUpdate();
-        return dataList.map(td -> {
-            StringCollection<Object> values = td.getValues();
-            values.add(field, value);
-            td.setValues(values);
-            return td;
-        });
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public CollectionList<TableData> update(@NotNull String field, @NotNull UpsertOptions options) throws SQLException {
+    public Promise<CollectionList<TableData>> update(@NotNull String field, @NotNull UpsertOptions options) {
         Validate.isTrue(field.matches(Sequelize.FIELD_NAME_REGEX.pattern()), "Field " + field + " must match following pattern: " + Sequelize.FIELD_NAME_REGEX.pattern());
         Validate.isTrue(options.getValues() != null && options.getValues().size() != 0, "Values must be specified.");
-        CollectionList<TableData> dataList = findAll(options);
-        String columns = options.getValues().keysList().map(s -> s + " = ?").join(", ");
-        StringBuilder sb = new StringBuilder("update " + getName() + " set " + columns);
-        if (options.where() != null) {
-            sb.append(" where ");
-            options.where().forEach((k, v) -> sb.append(k).append("=").append(v).append(" "));
-        }
-        sb.append(";");
-        PreparedStatement statement = connection.prepareStatement(sb.toString());
-        options.getValues().valuesList().foreach((o, i) -> {
-            try {
-                statement.setObject(i+1, o);
-            } catch (SQLException e) {
-                e.printStackTrace();
+        return new Promise<CollectionList<TableData>>() {
+            @SuppressWarnings("unchecked")
+            @Override
+            public CollectionList<TableData> apply(Object o0) {
+                try {
+                    CollectionList<TableData> dataList = (CollectionList<TableData>) await(findAll(options), null);
+                    String columns = options.getValues().keysList().map(s -> s + " = ?").join(", ");
+                    StringBuilder sb = new StringBuilder("update " + getName() + " set " + columns);
+                    if (options.where() != null) {
+                        sb.append(" where ");
+                        options.where().forEach((k, v) -> sb.append(k).append("=").append(v).append(" "));
+                    }
+                    sb.append(";");
+                    PreparedStatement statement = connection.prepareStatement(sb.toString());
+                    options.getValues().valuesList().foreach((o, i) -> {
+                        try {
+                            statement.setObject(i + 1, o);
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                        }
+                    });
+                    statement.executeUpdate();
+                    return dataList.map(td -> {
+                        td.setValues(options.getValues());
+                        return td;
+                    });
+                } catch (SQLException e) { throw new RuntimeException(e); }
             }
-        });
-        statement.executeUpdate();
-        return dataList.map(td -> {
-            td.setValues(options.getValues());
-            return td;
-        });
+        };
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public CollectionList<TableData> upsert(String field, UpsertOptions options) throws SQLException {
+    @SuppressWarnings("unchecked")
+    public Promise<CollectionList<TableData>> upsert(String field, UpsertOptions options) {
         Validate.isTrue(field.matches(Sequelize.FIELD_NAME_REGEX.pattern()), "Field " + field + " must match following pattern: " + Sequelize.FIELD_NAME_REGEX.pattern());
-        if (findAll(options).size() == 0) {
-            return ICollectionList.ArrayOf(insert(field, options));
+        if (((CollectionList<TableData>) await(findAll(options), null)).size() == 0) {
+            return async(o -> ICollectionList.ArrayOf((TableData) await(insert(options), null)));
         } else {
             return update(field, options);
         }
@@ -144,76 +197,92 @@ public class Table implements ITable {
      * {@inheritDoc}
      */
     @Override
-    public TableData insert(String field, InsertOptions options) throws SQLException {
-        Validate.isTrue(field.matches(Sequelize.FIELD_NAME_REGEX.pattern()), "Field " + field + " must match following pattern: " + Sequelize.FIELD_NAME_REGEX.pattern());
+    public Promise<TableData> insert(InsertOptions options) {
         Validate.isTrue(options != null && options.getValues() != null && options.getValues().size() != 0, "InsertOptions must not be null and has 1 key/value at least.");
-        String columns = options.getValues().keysList().join(", ");
-        String values = options.getValues().valuesList().map(s -> "?").join(", ");
-        PreparedStatement statement = connection.prepareStatement("insert into " + getName() + " (" + columns + ") values (" + values + ")" + ";");
-        options.getValues().valuesList().foreach((o, i) -> {
-            try {
-                statement.setObject(i+1, o);
-            } catch (SQLException e) {
-                e.printStackTrace();
+        return new Promise<TableData>() {
+            @Override
+            public TableData apply(Object o0) {
+                try {
+                    String columns = options.getValues().keysList().join(", ");
+                    String values = options.getValues().valuesList().map(s -> "?").join(", ");
+                    PreparedStatement statement = connection.prepareStatement("insert into " + getName() + " (" + columns + ") values (" + values + ")" + ";");
+                    options.getValues().valuesList().foreach((o, i) -> {
+                        try {
+                            statement.setObject(i+1, o);
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                        }
+                    });
+                    statement.executeUpdate();
+                    return new TableData(Table.this, connection, getDefinitions(), options.getValues());
+                } catch (SQLException e) { throw new RuntimeException(e); }
             }
-        });
-        statement.executeUpdate();
-        return new TableData(this, connection, getDefinitions(), options.getValues());
+        };
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    @Nullable
-    public CollectionList<TableData> delete(FindOptions options) throws SQLException {
+    public @NotNull Promise<CollectionList<TableData>> delete(FindOptions options) {
         Validate.isTrue(options.where() != null && options.where().size() != 0, "FindOptions(with where clause) must be provided.");
-        CollectionList<TableData> dataList = findAll(options);
-        StringBuilder sb = new StringBuilder("delete from " + getName());
-        if (options.where() != null) {
-            sb.append(" where ");
-            options.where().forEach((k, v) -> sb.append(k).append("=").append(v).append(" "));
-        } else throw new IllegalArgumentException("Where clause must be provided.");
-        sb.append(";");
-        Statement statement = connection.createStatement();
-        statement.executeUpdate(sb.toString());
-        return dataList;
-    }
-
-    @Override
-    public void increment(@NotNull IncrementOptions options) throws SQLException {
-        Validate.isTrue(options.getFieldsMap() != null && options.getFieldsMap().size() != 0, "IncrementOptions(with fieldsMap) must be provided.");
-        CollectionList<TableData> data = findAll(options);
-        if (data == null) return;
-        data.forEach(t -> options.getFieldsMap().forEach((k, i) -> {
-            try {
-                t.update(k, t.get(k, Integer.class) + i, options);
-            } catch (SQLException e) {
-                e.printStackTrace();
+        return new Promise<CollectionList<TableData>>() {
+            @SuppressWarnings("unchecked")
+            @Override
+            public CollectionList<TableData> apply(Object o) {
+                try {
+                    CollectionList<TableData> dataList = (CollectionList<TableData>) await(findAll(options), null);
+                    StringBuilder sb = new StringBuilder("delete from " + getName());
+                    if (options.where() != null) {
+                        sb.append(" where ");
+                        options.where().forEach((k, v) -> sb.append(k).append("=").append(v).append(" "));
+                    } else throw new IllegalArgumentException("Where clause must be provided.");
+                    sb.append(";");
+                    Statement statement = connection.createStatement();
+                    statement.executeUpdate(sb.toString());
+                    return dataList;
+                } catch (SQLException e) { throw new RuntimeException(e); }
             }
-        }));
+        };
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public void decrement(@NotNull IncrementOptions options) throws SQLException {
+    public Promise<Void> increment(@NotNull IncrementOptions options) {
         Validate.isTrue(options.getFieldsMap() != null && options.getFieldsMap().size() != 0, "IncrementOptions(with fieldsMap) must be provided.");
-        CollectionList<TableData> data = findAll(options);
-        if (data == null) return;
-        data.forEach(t -> options.getFieldsMap().forEach((k, i) -> {
-            try {
+        return async(o0 -> {
+            CollectionList<TableData> data = (CollectionList<TableData>) await(findAll(options), null);
+            if (data == null) return null;
+            data.forEach(t -> options.getFieldsMap().forEach((k, i) -> t.update(k, t.get(k, Integer.class) + i, options)));
+            return null;
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Promise<Void> decrement(@NotNull IncrementOptions options) {
+        Validate.isTrue(options.getFieldsMap() != null && options.getFieldsMap().size() != 0, "IncrementOptions(with fieldsMap) must be provided.");
+        return async(o1 -> {
+            CollectionList<TableData> data = (CollectionList<TableData>) await(findAll(options), null);
+            if (data == null) return null;
+            data.forEach(t -> options.getFieldsMap().forEach((k, i) -> {
                 t.update(k, t.get(k, Integer.class) - i, options);
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }));
+            }));
+            return null;
+        });
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void drop() throws SQLException {
-        connection.createStatement().executeUpdate("drop table if exists " + getName());
+    public Promise<Void> drop() {
+        return async(o1 -> {
+            try {
+                connection.createStatement().executeUpdate("drop table if exists " + getName());
+                return null;
+            } catch (SQLException e) { throw new RuntimeException(e); }
+        });
     }
 
     @Override
