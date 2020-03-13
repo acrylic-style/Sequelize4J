@@ -4,13 +4,14 @@ import org.jetbrains.annotations.NotNull;
 import util.CollectionList;
 import util.StringCollection;
 import util.promise.Promise;
+import xyz.acrylicstyle.sql.exceptions.IncompatibleTypeException;
 import xyz.acrylicstyle.sql.options.FindOptions;
 import xyz.acrylicstyle.sql.options.IncrementOptions;
 import xyz.acrylicstyle.sql.options.InsertOptions;
 import xyz.acrylicstyle.sql.options.UpsertOptions;
 
-import java.sql.Connection;
-import java.sql.SQLException;
+import java.math.BigDecimal;
+import java.sql.*;
 
 public class TableData implements ITable {
     private Table table;
@@ -125,12 +126,118 @@ public class TableData implements ITable {
     /**
      * Get field's value.
      * @param field Name of field
-     * @throws ClassCastException When couldn't cast to clazz
+     * @throws IncompatibleTypeException When couldn't cast to clazz
      * @return Value casted to the T
      */
     @SuppressWarnings("unchecked")
-    public <T> T get(String field, Class<T> clazz) throws ClassCastException {
-        return (T) values.get(field);
+    public <T> T get(String field, Class<T> clazz) throws IncompatibleTypeException {
+        Object value = values.get(field);
+        if (value == null) return null;
+        TableDefinition def = definitions.get(field);
+        Class<?> type = toClass(def.getType());
+        if (type.equals(Boolean.class) && (value.getClass().equals(int.class) || value.getClass().equals(Integer.class))) value = ((int) value) != 0;
+        if (type.equals(clazz)) return (T) value;
+        throw new IncompatibleTypeException(def.getType(), value.getClass());
+    }
+
+    @NotNull
+    public Class<?> toClass(@NotNull DataType type) {
+        switch (type) {
+            case TINYINT:
+                return Byte.class;
+            case SMALLINT:
+                return Short.class;
+            case INTEGER:
+            case INT:
+            case MEDIUMINT:
+                return Integer.class;
+            case BIGINT:
+                return Long.class;
+            case FLOAT:
+                return Float.class;
+            case DECIMAL:
+                return BigDecimal.class;
+            case CHAR:
+            case STRING:
+            case TEXT:
+                return String.class;
+            case BOOL:
+            case BOOLEAN:
+            case BIT:
+                return Boolean.class;
+            case BINARY:
+            case VARBINARY:
+                return Byte[].class;
+            case DATETIME:
+            case TIMESTAMP:
+                return Timestamp.class;
+            case DATE:
+                return Date.class;
+            case TIME:
+                return Time.class;
+            case ENUM:
+                return Enum.class;
+            case DOUBLE:
+                return Double.class;
+            default:
+                return Object.class;
+        }
+    }
+
+    public Integer getInteger(String field) throws IncompatibleTypeException {
+        return get(field, Integer.class);
+    }
+
+    public String getString(String field) throws IncompatibleTypeException {
+        return get(field, String.class);
+    }
+
+    public Boolean getBoolean(String field) throws IncompatibleTypeException {
+        return get(field, Boolean.class);
+    }
+
+    public Enum<?> getEnum(String field) throws IncompatibleTypeException {
+        return get(field, Enum.class);
+    }
+
+    public Double getDouble(String field) throws IncompatibleTypeException {
+        return get(field, Double.class);
+    }
+
+    public Time getTime(String field) throws IncompatibleTypeException {
+        return get(field, Time.class);
+    }
+
+    public Date getDate(String field) throws IncompatibleTypeException {
+        return get(field, Date.class);
+    }
+
+    public Timestamp getTimestamp(String field) throws IncompatibleTypeException {
+        return get(field, Timestamp.class);
+    }
+
+    public Byte[] getBinary(String field) throws IncompatibleTypeException {
+        return get(field, Byte[].class);
+    }
+
+    public BigDecimal getBigDecimal(String field) throws IncompatibleTypeException {
+        return get(field, BigDecimal.class);
+    }
+
+    public Float getFloat(String field) throws IncompatibleTypeException {
+        return get(field, Float.class);
+    }
+
+    public Long getLong(String field) throws IncompatibleTypeException {
+        return get(field, Long.class);
+    }
+
+    public Byte getByte(String field) throws IncompatibleTypeException {
+        return get(field, Byte.class);
+    }
+
+    public Short getShort(String field) throws IncompatibleTypeException {
+        return get(field, Short.class);
     }
 
     @Override

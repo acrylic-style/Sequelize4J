@@ -21,6 +21,10 @@ public class Sequelize implements ISQLUtils {
     private String password;
     private StringCollection<TableDefinition[]> definitions = new StringCollection<>();
 
+    /**
+     * @deprecated The driver is automatically registered via the SPI and manual loading of the driver class is generally unnecessary.
+     */
+    @Deprecated
     public static void loadDriver() {
         try {
             Class.forName("com.mysql.jdbc.Driver");

@@ -34,10 +34,10 @@ public class Test {
             CollectionList<TableData> dataList = (CollectionList<TableData>) await(stats.findAll(new FindOptions.Builder().addWhere("player", uuid.toString()).build()), null);
             check(dataList.size() == 1, "Stats size", "Size must be 1");
             TableData tableData = dataList.first();
-            check(tableData.get("player", String.class).equals(uuid.toString()),
+            check(tableData.getString("player").equals(uuid.toString()),
                     "Validate player",
-                    "player wasn't " + tableData.get("player", String.class) + " == " + uuid.toString());
-            check(tableData.get("booed", int.class) == 0, "Verify booed state is false", "booed was true");
+                    "player wasn't " + tableData.getString("player") + " == " + uuid.toString());
+            check(!tableData.getBoolean("booed"), "Verify booed state is false", "booed was true");
             CollectionList<TableData> dataList2;
             try {
                 dataList2 = (CollectionList<TableData>) await(tableData.update("booed", 1, new FindOptions.Builder().addWhere("player", uuid.toString()).build()), null);
@@ -48,7 +48,7 @@ public class Test {
             }
             pass("Update booed state to true");
             TableData data2 = dataList2.first();
-            check(data2.get("booed", int.class) == 1, "Verify booed state is true", "booed was false");
+            check(data2.getBoolean("booed"), "Verify booed state is true", "booed was false");
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -78,7 +78,6 @@ public class Test {
     }
 
     private static void initSQL(String host, String database, String user, String password) throws SQLException {
-        Sequelize.loadDriver();
         if (database == null || user == null || password == null) {
             sequelize = new Sequelize(host);
         } else {

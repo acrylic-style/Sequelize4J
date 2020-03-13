@@ -15,7 +15,6 @@ import static util.promise.Promise.async;
 import static util.promise.Promise.await;
 
 import java.sql.*;
-import java.util.Collection;
 
 public class Table implements ITable {
     private String name;

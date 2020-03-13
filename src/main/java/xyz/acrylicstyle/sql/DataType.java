@@ -24,7 +24,9 @@ public enum DataType {
     BLOB("BLOB"),
     TEXT("TEXT"),
     ENUM("ENUM"),
-    SET("SET");
+    SET("SET"),
+    DATE("DATE"),
+    ;
 
     private String type;
 
