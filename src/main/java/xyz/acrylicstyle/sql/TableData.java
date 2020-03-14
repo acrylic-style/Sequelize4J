@@ -136,7 +136,7 @@ public class TableData implements ITable {
         TableDefinition def = definitions.get(field);
         Class<?> type = toClass(def.getType());
         if (type.equals(Boolean.class) && (value.getClass().equals(int.class) || value.getClass().equals(Integer.class))) value = ((int) value) != 0;
-        if (type.equals(clazz)) return (T) value;
+        if (type.equals(clazz) || type.getCanonicalName().equals(clazz.getCanonicalName())) return (T) value;
         throw new IncompatibleTypeException(def.getType(), type, value.getClass());
     }
 
