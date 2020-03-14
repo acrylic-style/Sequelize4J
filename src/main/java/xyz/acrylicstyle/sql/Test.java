@@ -24,7 +24,7 @@ public class Test {
         try {
             initSQLUsingMemory();
             try {
-                await(stats.insert(new InsertOptions.Builder().addValue("player", uuid.toString()).addValue("booed", false).build()), null);
+                await(stats.insert(new InsertOptions.Builder().addValue("player", uuid.toString()).addValue("booed", false).addValue("i", 0).build()), null);
             } catch (Exception e) {
                 fail("Insert into stats table", e.getMessage());
                 e.printStackTrace();
@@ -38,6 +38,7 @@ public class Test {
                     "Validate player",
                     "player wasn't " + tableData.getString("player") + " == " + uuid.toString());
             check(!tableData.getBoolean("booed"), "Verify booed state is false", "booed was true");
+            check(tableData.getInteger("i") == 0, "Verify i is 0", "i was " + tableData.getInteger("i"));
             CollectionList<TableData> dataList2;
             try {
                 dataList2 = (CollectionList<TableData>) await(tableData.update("booed", 1, new FindOptions.Builder().addWhere("player", uuid.toString()).build()), null);
@@ -86,7 +87,8 @@ public class Test {
         sequelize.authenticate();
         tables.add("stats", stats = sequelize.define("stats", new TableDefinition[] {
                 new TableDefinition.Builder("player", DataType.STRING).setPrimaryKey(true).setAllowNull(false).build(),
-                new TableDefinition.Builder("booed", DataType.BOOLEAN).setDefaultValue(false).setAllowNull(true).build(),
+                new TableDefinition.Builder("booed", DataType.BOOLEAN).setDefaultValue(0).setAllowNull(true).build(),
+                new TableDefinition.Builder("i", DataType.INTEGER).setAllowNull(true).build(),
         }));
         sequelize.sync();
     }

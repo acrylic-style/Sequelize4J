@@ -137,7 +137,7 @@ public class TableData implements ITable {
         Class<?> type = toClass(def.getType());
         if (type.equals(Boolean.class) && (value.getClass().equals(int.class) || value.getClass().equals(Integer.class))) value = ((int) value) != 0;
         if (type.equals(clazz)) return (T) value;
-        throw new IncompatibleTypeException(def.getType(), value.getClass());
+        throw new IncompatibleTypeException(def.getType(), type, value.getClass());
     }
 
     @NotNull

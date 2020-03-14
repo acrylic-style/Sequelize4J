@@ -1,6 +1,7 @@
 package xyz.acrylicstyle.sql;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import util.CollectionList;
 import util.ICollection;
 import util.ICollectionList;
@@ -41,14 +42,14 @@ public class Table implements ITable {
      * {@inheritDoc}
      */
     @Override
-    public Promise<CollectionList<TableData>> findAll(FindOptions options) {
+    public Promise<CollectionList<TableData>> findAll(@Nullable FindOptions options) {
         return new Promise<CollectionList<TableData>>() {
             @Override
             public CollectionList<TableData> apply(Object o0) {
                 try {
                     StringBuilder sb = new StringBuilder("select * from " + getName());
                     CollectionList<Object> values = new CollectionList<>();
-                    if (options != null && options.where() != null) {
+                    if (options != null && options.where() != null && options.where().size() != 0) {
                         sb.append(" where ");
                         options.where().forEach((k, v) -> {
                             values.add(v);
@@ -264,9 +265,7 @@ public class Table implements ITable {
         return async(o1 -> {
             CollectionList<TableData> data = (CollectionList<TableData>) await(findAll(options), null);
             if (data == null) return null;
-            data.forEach(t -> options.getFieldsMap().forEach((k, i) -> {
-                t.update(k, t.get(k, Integer.class) - i, options);
-            }));
+            data.forEach(t -> options.getFieldsMap().forEach((k, i) -> t.update(k, t.get(k, Integer.class) - i, options)));
             return null;
         });
     }
