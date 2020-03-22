@@ -16,6 +16,7 @@ import static util.promise.Promise.async;
 import static util.promise.Promise.await;
 
 import java.sql.*;
+import java.util.Objects;
 
 public class Table implements ITable {
     private String name;
@@ -137,6 +138,7 @@ public class Table implements ITable {
                     }
                 });
                 statement.executeUpdate();
+                assert dataList != null;
                 return dataList.map(td -> {
                     StringCollection<Object> values2 = td.getValues();
                     values2.add(field, value);
@@ -177,6 +179,7 @@ public class Table implements ITable {
                         }
                     });
                     statement.executeUpdate();
+                    assert dataList != null;
                     return dataList.map(td -> {
                         td.setValues(options.getValues());
                         return td;
@@ -193,7 +196,7 @@ public class Table implements ITable {
     @SuppressWarnings("unchecked")
     public Promise<CollectionList<TableData>> upsert(String field, UpsertOptions options) {
         Validate.isTrue(field.matches(Sequelize.FIELD_NAME_REGEX.pattern()), "Field " + field + " must match following pattern: " + Sequelize.FIELD_NAME_REGEX.pattern());
-        if (((CollectionList<TableData>) await(findAll(options), null)).size() == 0) {
+        if (((CollectionList<TableData>) Objects.requireNonNull(await(findAll(options), null))).size() == 0) {
             return async(o -> ICollectionList.ArrayOf((TableData) await(insert(options), null)));
         } else {
             return update(field, options);
