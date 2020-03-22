@@ -19,12 +19,18 @@ public class TableData implements ITable {
     @SuppressWarnings({"unused", "FieldCanBeLocal"})
     private StringCollection<TableDefinition> definitions;
     private StringCollection<Object> values;
+    private final String statement;
 
-    public TableData(Table table, Connection connection, StringCollection<TableDefinition> definitions, StringCollection<Object> values) {
+    public TableData(Table table, Connection connection, StringCollection<TableDefinition> definitions, StringCollection<Object> values, String statement) {
         this.table = table;
         this.connection = connection;
         this.definitions = definitions;
         this.values = values;
+        this.statement = statement;
+    }
+
+    public String getStatement() {
+        return statement;
     }
 
     @Override

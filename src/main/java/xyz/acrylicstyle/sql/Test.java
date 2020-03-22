@@ -4,11 +4,13 @@ import util.CollectionList;
 import util.StringCollection;
 import xyz.acrylicstyle.sql.options.FindOptions;
 import xyz.acrylicstyle.sql.options.InsertOptions;
+import xyz.acrylicstyle.sql.options.Sort;
 
 import java.sql.SQLException;
 import java.util.UUID;
 
 import static util.promise.Promise.await;
+import static util.promise.Promise.awaitT;
 
 /**
  * An class for test how sequelize works.
@@ -22,23 +24,28 @@ public class Test {
     @SuppressWarnings("unchecked")
     public static void main(String[] args) {
         try {
-            initSQLUsingMemory();
+            initSQL();
             try {
-                await(stats.insert(new InsertOptions.Builder().addValue("player", uuid.toString()).addValue("booed", false).addValue("i", 0).build()), null);
+                await(stats.insert(new InsertOptions.Builder().addValue("player", uuid.toString()).addValue("booed", false).addValue("i", 5).build()), null);
+                await(stats.insert(new InsertOptions.Builder().addValue("player", UUID.randomUUID().toString()).addValue("booed", false).addValue("i", 1).build()), null);
+                await(stats.insert(new InsertOptions.Builder().addValue("player", UUID.randomUUID().toString()).addValue("booed", false).addValue("i", 2).build()), null);
+                await(stats.insert(new InsertOptions.Builder().addValue("player", UUID.randomUUID().toString()).addValue("booed", false).addValue("i", 10).build()), null);
+                await(stats.insert(new InsertOptions.Builder().addValue("player", UUID.randomUUID().toString()).addValue("booed", false).addValue("i", -1).build()), null);
             } catch (Exception e) {
                 fail("Insert into stats table", e.getMessage());
                 e.printStackTrace();
                 return;
             }
             pass("Insert into stats table");
-            CollectionList<TableData> dataList = (CollectionList<TableData>) await(stats.findAll(new FindOptions.Builder().addWhere("player", uuid.toString()).build()), null);
-            check(dataList.size() == 1, "Stats size", "Size must be 1");
+            CollectionList<TableData> dataList = (CollectionList<TableData>) await(stats.findAll(null), null);
+            assert dataList != null;
+            check(dataList.size() == 5, "Stats size", "Size must be 5, but it was " + dataList.size());
             TableData tableData = dataList.first();
             check(tableData.getString("player").equals(uuid.toString()),
                     "Validate player",
                     "player wasn't " + tableData.getString("player") + " == " + uuid.toString());
             check(!tableData.getBoolean("booed"), "Verify booed state is false", "booed was true");
-            check(tableData.getInteger("i") == 0, "Verify i is 0", "i was " + tableData.getInteger("i"));
+            check(tableData.getInteger("i") == 5, "Verify i is 5", "i was " + tableData.getInteger("i"));
             CollectionList<TableData> dataList2;
             try {
                 dataList2 = (CollectionList<TableData>) await(tableData.update("booed", 1, new FindOptions.Builder().addWhere("player", uuid.toString()).build()), null);
@@ -48,8 +55,19 @@ public class Test {
                 return;
             }
             pass("Update booed state to true");
+            assert dataList2 != null;
             TableData data2 = dataList2.first();
             check(data2.getBoolean("booed"), "Verify booed state is true", "booed was false");
+            CollectionList<TableData> sortedDataList = awaitT(stats.findAll(
+                    new FindOptions
+                            .Builder()
+                            .setOrderBy("i")
+                            .setOrder(Sort.ASC)
+                            .build()
+            ));
+            assert sortedDataList != null;
+            check(sortedDataList.first().getInteger("i") == -1, "Verify the first value of sorted data list is -1", "Returned " + sortedDataList.first().getInteger("i") + " instead of -1");
+            System.out.println("I's: " + sortedDataList.map(d -> d.getInteger("i")).join(", "));
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -70,20 +88,8 @@ public class Test {
         } else System.out.println("PASS " + title);
     }
 
-    private static void initSQLUsingSQLite(String name) throws SQLException {
-        initSQL("jdbc:sqlite:./plugins/Tosogame/" + name, null, null, null);
-    }
-
-    private static void initSQLUsingMemory() throws SQLException {
-        initSQL("jdbc:sqlite::memory:", null, null, null);
-    }
-
-    private static void initSQL(String host, String database, String user, String password) throws SQLException {
-        if (database == null || user == null || password == null) {
-            sequelize = new Sequelize(host);
-        } else {
-            sequelize = new Sequelize(host, database, user, password);
-        }
+    private static void initSQL() throws SQLException {
+        sequelize = new Sequelize("jdbc:sqlite::memory:");
         sequelize.authenticate();
         tables.add("stats", stats = sequelize.define("stats", new TableDefinition[] {
                 new TableDefinition.Builder("player", DataType.STRING).setPrimaryKey(true).setAllowNull(false).build(),

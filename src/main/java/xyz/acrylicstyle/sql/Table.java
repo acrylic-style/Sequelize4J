@@ -49,12 +49,17 @@ public class Table implements ITable {
                 try {
                     StringBuilder sb = new StringBuilder("select * from " + getName());
                     CollectionList<Object> values = new CollectionList<>();
-                    if (options != null && options.where() != null && options.where().size() != 0) {
-                        sb.append(" where ");
-                        options.where().forEach((k, v) -> {
-                            values.add(v);
-                            sb.append(k).append("=?").append(" ");
-                        });
+                    if (options != null) {
+                        if (options.where() != null && options.where().size() != 0) {
+                            sb.append(" where ");
+                            options.where().forEach((k, v) -> {
+                                values.add(v);
+                                sb.append(k).append("=?").append(" ");
+                            });
+                        }
+                        if (options.orderBy() != null && !options.orderBy().equals("")) {
+                            sb.append(" order by ").append(options.orderBy()).append(" ").append(options.order().name());
+                        }
                     }
                     sb.append(";");
                     PreparedStatement statement = connection.prepareStatement(sb.toString());
@@ -76,7 +81,7 @@ public class Table implements ITable {
                                 e.printStackTrace();
                             }
                         });
-                        tableData.add(new TableData(Table.this, connection, getDefinitions(), v));
+                        tableData.add(new TableData(Table.this, connection, getDefinitions(), v, sb.toString()));
                     }
                     return tableData;
                 } catch (SQLException e) {
@@ -94,6 +99,7 @@ public class Table implements ITable {
     public Promise<TableData> findOne(FindOptions options) {
         return async(o0 -> {
             CollectionList<TableData> list = (CollectionList<TableData>) await(findAll(options), null);
+            assert list != null;
             return list.size() == 0 ? null : list.first();
         });
     }
@@ -205,7 +211,8 @@ public class Table implements ITable {
                 try {
                     String columns = options.getValues().keysList().join(", ");
                     String values = options.getValues().valuesList().map(s -> "?").join(", ");
-                    PreparedStatement statement = connection.prepareStatement("insert into " + getName() + " (" + columns + ") values (" + values + ")" + ";");
+                    String sql = "insert into " + getName() + " (" + columns + ") values (" + values + ")" + ";";
+                    PreparedStatement statement = connection.prepareStatement(sql);
                     options.getValues().valuesList().foreach((o, i) -> {
                         try {
                             statement.setObject(i+1, o);
@@ -214,7 +221,7 @@ public class Table implements ITable {
                         }
                     });
                     statement.executeUpdate();
-                    return new TableData(Table.this, connection, getDefinitions(), options.getValues());
+                    return new TableData(Table.this, connection, getDefinitions(), options.getValues(), sql);
                 } catch (SQLException e) { throw new RuntimeException(e); }
             }
         };
@@ -253,7 +260,7 @@ public class Table implements ITable {
         return async(o0 -> {
             CollectionList<TableData> data = (CollectionList<TableData>) await(findAll(options), null);
             if (data == null) return null;
-            data.forEach(t -> options.getFieldsMap().forEach((k, i) -> t.update(k, t.get(k, Integer.class) + i, options)));
+            data.forEach(t -> options.getFieldsMap().forEach((k, i) -> t.update(k, t.getInteger(k) + i, options)));
             return null;
         });
     }
