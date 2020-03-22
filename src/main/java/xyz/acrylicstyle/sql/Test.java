@@ -67,7 +67,15 @@ public class Test {
             ));
             assert sortedDataList != null;
             check(sortedDataList.first().getInteger("i") == -1, "Verify the first value of sorted data list is -1", "Returned " + sortedDataList.first().getInteger("i") + " instead of -1");
-            System.out.println("I's: " + sortedDataList.map(d -> d.getInteger("i")).join(", "));
+            System.out.println("i: " + sortedDataList.map(d -> d.getInteger("i")).join(", "));
+            CollectionList<TableData> limitedDataList = awaitT(stats.findAll(
+                    new FindOptions
+                            .Builder()
+                            .setLimit(3)
+                            .build()
+            ));
+            assert limitedDataList != null;
+            check(limitedDataList.size() == 3, "Verify the limited data list length is 3", "Data list length was " + limitedDataList.size());
         } catch (SQLException e) {
             e.printStackTrace();
         }

@@ -60,6 +60,7 @@ public class Table implements ITable {
                         if (options.orderBy() != null && !options.orderBy().equals("")) {
                             sb.append(" order by ").append(options.orderBy()).append(" ").append(options.order().name());
                         }
+                        if (options.limit() != null) sb.append(" limit ").append(options.limit());
                     }
                     sb.append(";");
                     PreparedStatement statement = connection.prepareStatement(sb.toString());
