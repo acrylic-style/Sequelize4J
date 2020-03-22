@@ -3,6 +3,7 @@ package xyz.acrylicstyle.sql;
 import util.CollectionList;
 import util.StringCollection;
 import xyz.acrylicstyle.sql.options.FindOptions;
+import xyz.acrylicstyle.sql.options.IncrementOptions;
 import xyz.acrylicstyle.sql.options.InsertOptions;
 import xyz.acrylicstyle.sql.options.Sort;
 
@@ -76,6 +77,10 @@ public class Test {
             ));
             assert limitedDataList != null;
             check(limitedDataList.size() == 3, "Verify the limited data list length is 3", "Data list length was " + limitedDataList.size());
+            awaitT(stats.increment(new IncrementOptions.Builder().addWhere("player", uuid.toString()).addField("i", 100).build()));
+            TableData tableData2 = awaitT(stats.findOne(new FindOptions.Builder().addWhere("player", uuid.toString()).build()));
+            assert tableData2 != null;
+            check(tableData2.getInteger("i") == 105, "Verify i is 105", "i was " + tableData2.getInteger("i"));
         } catch (SQLException e) {
             e.printStackTrace();
         }

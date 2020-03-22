@@ -12,11 +12,10 @@ import xyz.acrylicstyle.sql.options.IncrementOptions;
 import xyz.acrylicstyle.sql.options.InsertOptions;
 import xyz.acrylicstyle.sql.options.UpsertOptions;
 
-import static util.promise.Promise.async;
-import static util.promise.Promise.await;
-
 import java.sql.*;
 import java.util.Objects;
+
+import static util.promise.Promise.*;
 
 public class Table implements ITable {
     private String name;
@@ -263,8 +262,8 @@ public class Table implements ITable {
         Validate.isTrue(options.getFieldsMap() != null && options.getFieldsMap().size() != 0, "IncrementOptions(with fieldsMap) must be provided.");
         return async(o0 -> {
             CollectionList<TableData> data = (CollectionList<TableData>) await(findAll(options), null);
-            if (data == null) return null;
-            data.forEach(t -> options.getFieldsMap().forEach((k, i) -> t.update(k, t.getInteger(k) + i, options)));
+            if (data == null) throw new NullPointerException();
+            data.forEach(t -> options.getFieldsMap().forEach((k, i) -> awaitT(t.update(k, t.getInteger(k) + i, options))));
             return null;
         });
     }
@@ -276,7 +275,7 @@ public class Table implements ITable {
         return async(o1 -> {
             CollectionList<TableData> data = (CollectionList<TableData>) await(findAll(options), null);
             if (data == null) return null;
-            data.forEach(t -> options.getFieldsMap().forEach((k, i) -> t.update(k, t.get(k, Integer.class) - i, options)));
+            data.forEach(t -> options.getFieldsMap().forEach((k, i) -> awaitT(t.update(k, t.get(k, Integer.class) - i, options))));
             return null;
         });
     }
