@@ -60,7 +60,7 @@ public class Sequelize implements ISQLUtils {
         try {
             Statement statement = Validate.notNull(connection, "Connection hasn't made yet.").createStatement();
             statement.execute("select 1;");
-        } catch (SQLException e) {
+        } catch (Exception e) {
             authenticate();
         }
     }
