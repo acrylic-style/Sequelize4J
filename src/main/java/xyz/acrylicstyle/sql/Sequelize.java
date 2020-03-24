@@ -8,6 +8,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
@@ -51,7 +52,17 @@ public class Sequelize implements ISQLUtils {
 
     @Override
     public Connection authenticate() throws SQLException {
-        connection = DriverManager.getConnection(this.url, this.user, this.password);
+        return authenticate(null);
+    }
+
+    @Override
+    public Connection authenticate(Properties p) throws SQLException {
+        Properties properties = p == null ? new Properties() : p;
+        if (this.user != null) properties.setProperty("user", this.user);
+        if (this.password != null) properties.setProperty("password", this.password);
+        properties.put("maxReconnects", properties.getOrDefault("maxReconnects", 100));
+        properties.put("autoReconnect", properties.getOrDefault("autoReconnect", true));
+        connection = DriverManager.getConnection(this.url, properties);
         return connection;
     }
 

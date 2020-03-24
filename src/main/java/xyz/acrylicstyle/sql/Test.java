@@ -8,6 +8,7 @@ import xyz.acrylicstyle.sql.options.InsertOptions;
 import xyz.acrylicstyle.sql.options.Sort;
 
 import java.sql.SQLException;
+import java.util.Properties;
 import java.util.UUID;
 
 import static util.promise.Promise.await;
@@ -102,8 +103,10 @@ public class Test {
     }
 
     private static void initSQL() throws SQLException {
+        Properties properties = new Properties();
+        properties.put("autoReconnect", true);
         sequelize = new Sequelize("jdbc:sqlite::memory:");
-        sequelize.authenticate();
+        sequelize.authenticate(properties);
         tables.add("stats", stats = sequelize.define("stats", new TableDefinition[] {
                 new TableDefinition.Builder("player", DataType.STRING).setPrimaryKey(true).setAllowNull(false).build(),
                 new TableDefinition.Builder("booed", DataType.BOOLEAN).setDefaultValue(0).setAllowNull(true).build(),

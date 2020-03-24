@@ -2,9 +2,11 @@ package xyz.acrylicstyle.sql;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Properties;
 
 public interface ISQLUtils extends IUtils {
     Connection authenticate() throws SQLException;
+    Connection authenticate(Properties properties) throws SQLException;
     void ping() throws SQLException;
     void close() throws SQLException;
     /**
