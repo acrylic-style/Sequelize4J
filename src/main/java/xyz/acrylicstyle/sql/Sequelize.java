@@ -9,6 +9,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
@@ -62,7 +63,18 @@ public class Sequelize implements ISQLUtils {
         if (this.password != null) properties.setProperty("password", this.password);
         properties.put("maxReconnects", properties.getOrDefault("maxReconnects", 100));
         properties.put("autoReconnect", properties.getOrDefault("autoReconnect", true));
-        connection = DriverManager.getConnection(this.url, properties);
+        StringBuilder sb = new StringBuilder("?");
+        AtomicBoolean first = new AtomicBoolean(false);
+        properties.forEach((o1, o2) -> {
+            if (first.get()) sb.append('&');
+            sb.append(o1).append("=").append(o2);
+            first.set(true);
+        });
+        if (this.url.endsWith(":")) {
+            connection = DriverManager.getConnection(this.url, properties);
+        } else {
+            connection = DriverManager.getConnection(this.url + sb.toString());
+        }
         return connection;
     }
 

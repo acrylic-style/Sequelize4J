@@ -103,10 +103,8 @@ public class Test {
     }
 
     private static void initSQL() throws SQLException {
-        Properties properties = new Properties();
-        properties.put("autoReconnect", true);
         sequelize = new Sequelize("jdbc:sqlite::memory:");
-        sequelize.authenticate(properties);
+        sequelize.authenticate();
         tables.add("stats", stats = sequelize.define("stats", new TableDefinition[] {
                 new TableDefinition.Builder("player", DataType.STRING).setPrimaryKey(true).setAllowNull(false).build(),
                 new TableDefinition.Builder("booed", DataType.BOOLEAN).setDefaultValue(0).setAllowNull(true).build(),
