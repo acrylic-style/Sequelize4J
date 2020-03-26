@@ -147,7 +147,7 @@ public class Sequelize implements ISQLUtils {
             definitions.add(def.getName(), def);
         }
         this.definitions.add(table, definitionArr);
-        return new Table(table, definitions, connection);
+        return new Table(table, definitions, connection, this);
     }
 
     @Override

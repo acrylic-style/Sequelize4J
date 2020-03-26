@@ -1,5 +1,6 @@
 package xyz.acrylicstyle.sql;
 
+import com.mysql.cj.jdbc.exceptions.CommunicationsException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import util.CollectionList;
@@ -12,6 +13,7 @@ import xyz.acrylicstyle.sql.options.IncrementOptions;
 import xyz.acrylicstyle.sql.options.InsertOptions;
 import xyz.acrylicstyle.sql.options.UpsertOptions;
 
+import java.net.SocketException;
 import java.sql.*;
 import java.util.Objects;
 
@@ -21,8 +23,9 @@ public class Table implements ITable {
     private String name;
     private StringCollection<TableDefinition> tableData;
     private Connection connection;
+    private Sequelize sequelize;
 
-    public Table(String name, StringCollection<TableDefinition> tableData, Connection connection) {
+    public Table(String name, StringCollection<TableDefinition> tableData, Connection connection, Sequelize sequelize) {
         this.name = name;
         this.tableData = tableData;
         this.connection = connection;
@@ -85,6 +88,13 @@ public class Table implements ITable {
                         tableData.add(new TableData(Table.this, connection, getDefinitions(), v, sb.toString()));
                     }
                     return tableData;
+                } catch (CommunicationsException e2) {
+                    try {
+                        sequelize.authenticate();
+                        return null;
+                    } catch (SQLException e3) {
+                        throw new RuntimeException(e3);
+                    }
                 } catch (SQLException e) {
                     throw new RuntimeException(e);
                 }
@@ -144,6 +154,13 @@ public class Table implements ITable {
                     td.setValues(values2);
                     return td;
                 });
+            } catch (CommunicationsException e2) {
+                try {
+                    sequelize.authenticate();
+                    return null;
+                } catch (SQLException e3) {
+                    throw new RuntimeException(e3);
+                }
             } catch (SQLException e) { throw new RuntimeException(e); }
         });
     }
@@ -183,6 +200,13 @@ public class Table implements ITable {
                         td.setValues(options.getValues());
                         return td;
                     });
+                } catch (CommunicationsException e2) {
+                    try {
+                        sequelize.authenticate();
+                        return null;
+                    } catch (SQLException e3) {
+                        throw new RuntimeException(e3);
+                    }
                 } catch (SQLException e) { throw new RuntimeException(e); }
             }
         };
@@ -225,6 +249,13 @@ public class Table implements ITable {
                     });
                     statement.executeUpdate();
                     return new TableData(Table.this, connection, getDefinitions(), options.getValues(), sql);
+                } catch (CommunicationsException e2) {
+                    try {
+                        sequelize.authenticate();
+                        return null;
+                    } catch (SQLException e3) {
+                        throw new RuntimeException(e3);
+                    }
                 } catch (SQLException e) { throw new RuntimeException(e); }
             }
         };
@@ -251,6 +282,13 @@ public class Table implements ITable {
                     Statement statement = connection.createStatement();
                     statement.executeUpdate(sb.toString());
                     return dataList;
+                } catch (CommunicationsException e2) {
+                    try {
+                        sequelize.authenticate();
+                        return null;
+                    } catch (SQLException e3) {
+                        throw new RuntimeException(e3);
+                    }
                 } catch (SQLException e) { throw new RuntimeException(e); }
             }
         };
@@ -289,6 +327,13 @@ public class Table implements ITable {
             try {
                 connection.createStatement().executeUpdate("drop table if exists " + getName());
                 return null;
+            } catch (CommunicationsException e2) {
+                try {
+                    sequelize.authenticate();
+                    return null;
+                } catch (SQLException e3) {
+                    throw new RuntimeException(e3);
+                }
             } catch (SQLException e) { throw new RuntimeException(e); }
         });
     }

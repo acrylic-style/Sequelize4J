@@ -8,7 +8,6 @@ import xyz.acrylicstyle.sql.options.InsertOptions;
 import xyz.acrylicstyle.sql.options.Sort;
 
 import java.sql.SQLException;
-import java.util.Properties;
 import java.util.UUID;
 
 import static util.promise.Promise.await;
