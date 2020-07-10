@@ -18,10 +18,10 @@ public class Sequelize implements ISQLUtils {
     public static final Pattern FIELD_NAME_REGEX = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]*$");
 
     private Connection connection;
-    private String url;
+    public final String url;
     private String user;
     private String password;
-    private StringCollection<TableDefinition[]> definitions = new StringCollection<>();
+    private final StringCollection<TableDefinition[]> definitions = new StringCollection<>();
 
     /**
      * @deprecated The driver is automatically registered via the SPI and manual loading of the driver class is generally unnecessary.

@@ -11,13 +11,16 @@ import xyz.acrylicstyle.sql.options.InsertOptions;
 import xyz.acrylicstyle.sql.options.UpsertOptions;
 
 import java.math.BigDecimal;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 
 public class TableData implements ITable {
-    private Table table;
-    private Connection connection;
+    private final Table table;
+    private final Connection connection;
     @SuppressWarnings({"unused", "FieldCanBeLocal"})
-    private StringCollection<TableDefinition> definitions;
+    private final StringCollection<TableDefinition> definitions;
     private StringCollection<Object> values;
     private final String statement;
 
@@ -72,8 +75,8 @@ public class TableData implements ITable {
      * @return
      */
     @Override
-    public Promise<CollectionList<TableData>> update(@NotNull String field, @NotNull UpsertOptions options) {
-        return table.update(field, options);
+    public Promise<CollectionList<TableData>> update(@NotNull UpsertOptions options) {
+        return table.update(options);
     }
 
     /**
@@ -81,8 +84,8 @@ public class TableData implements ITable {
      * @return
      */
     @Override
-    public Promise<CollectionList<TableData>> upsert(String field, UpsertOptions options) {
-        return table.update(field, options);
+    public Promise<CollectionList<TableData>> upsert(UpsertOptions options) {
+        return table.update(options);
     }
 
     /**
@@ -141,13 +144,13 @@ public class TableData implements ITable {
         if (value == null) return null;
         TableDefinition def = definitions.get(field);
         Class<?> type = toClass(def.getType());
-        if (type.equals(Boolean.class) && (value.getClass().equals(int.class) || value.getClass().equals(Integer.class))) value = ((int) value) != 0;
+        if (type.equals(Boolean.class) && value.getClass().equals(Integer.class)) value = ((int) value) != 0;
         if (type.equals(clazz) || type.getCanonicalName().equals(clazz.getCanonicalName())) return (T) value;
         throw new IncompatibleTypeException(def.getType(), type, value.getClass());
     }
 
     @NotNull
-    public Class<?> toClass(@NotNull DataType type) {
+    private Class<?> toClass(@NotNull DataType type) {
         switch (type) {
             case TINYINT:
                 return Byte.class;

@@ -36,19 +36,17 @@ public interface ITable extends IUtils {
 
     /**
      * Updates multiple data.
-     * @param field Name of field
      * @param options Options that contains values, and where clause.
      * @return Updated table data list.
      */
-    Promise<CollectionList<TableData>> update(String field, UpsertOptions options);
+    Promise<CollectionList<TableData>> update(UpsertOptions options);
 
     /**
      * Insert a data if not exists, Update a data if exists.
-     * @param field Name of field
      * @param options Upsert Options. Required.
      * @return Created or Updated Table data list.
      */
-    Promise<CollectionList<TableData>> upsert(String field, UpsertOptions options);
+    Promise<CollectionList<TableData>> upsert(UpsertOptions options);
 
     /**
      * Insert a data into table.

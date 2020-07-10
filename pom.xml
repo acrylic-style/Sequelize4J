@@ -6,12 +6,13 @@
 
     <groupId>xyz.acrylicstyle</groupId>
     <artifactId>Sequelize4J</artifactId>
-    <version>0.2.10</version>
+    <version>0.2.11</version>
     <build>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
                 <configuration>
                     <source>8</source>
                     <target>8</target>
@@ -45,8 +46,8 @@
     <dependencies>
         <dependency>
             <groupId>xyz.acrylicstyle</groupId>
-            <artifactId>Util</artifactId>
-            <version>0.8.24</version>
+            <artifactId>java-util-all</artifactId>
+            <version>0.11.22</version>
         </dependency>
         <dependency>
             <groupId>org.jetbrains</groupId>

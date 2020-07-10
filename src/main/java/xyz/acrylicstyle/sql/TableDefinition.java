@@ -34,8 +34,8 @@ public abstract class TableDefinition {
     public boolean allowNull() { return true; }
 
     public static class Builder {
-        private String name;
-        private DataType dataType;
+        private final String name;
+        private final DataType dataType;
         private boolean primaryKey = false;
         private boolean autoIncrement = false;
         private Object defaultValue = null;

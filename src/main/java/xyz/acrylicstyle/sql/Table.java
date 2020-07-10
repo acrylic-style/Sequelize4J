@@ -13,22 +13,28 @@ import xyz.acrylicstyle.sql.options.IncrementOptions;
 import xyz.acrylicstyle.sql.options.InsertOptions;
 import xyz.acrylicstyle.sql.options.UpsertOptions;
 
-import java.net.SocketException;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Objects;
 
-import static util.promise.Promise.*;
+import static util.promise.Promise.async;
+import static util.promise.Promise.await;
+import static util.promise.Promise.awaitT;
 
 public class Table implements ITable {
-    private String name;
-    private StringCollection<TableDefinition> tableData;
-    private Connection connection;
-    private Sequelize sequelize;
+    private final String name;
+    private final StringCollection<TableDefinition> tableData;
+    private final Connection connection;
+    private final Sequelize sequelize;
 
     public Table(String name, StringCollection<TableDefinition> tableData, Connection connection, Sequelize sequelize) {
         this.name = name;
         this.tableData = tableData;
         this.connection = connection;
+        this.sequelize = sequelize;
     }
 
     public TableDefinition getDefinition(String field) { return tableData.get(field); }
@@ -170,8 +176,7 @@ public class Table implements ITable {
      * @return
      */
     @Override
-    public Promise<CollectionList<TableData>> update(@NotNull String field, @NotNull UpsertOptions options) {
-        Validate.isTrue(field.matches(Sequelize.FIELD_NAME_REGEX.pattern()), "Field " + field + " must match following pattern: " + Sequelize.FIELD_NAME_REGEX.pattern());
+    public Promise<CollectionList<TableData>> update(@NotNull UpsertOptions options) {
         Validate.isTrue(options.getValues() != null && options.getValues().size() != 0, "Values must be specified.");
         return new Promise<CollectionList<TableData>>() {
             @SuppressWarnings("unchecked")
@@ -217,12 +222,11 @@ public class Table implements ITable {
      */
     @Override
     @SuppressWarnings("unchecked")
-    public Promise<CollectionList<TableData>> upsert(String field, UpsertOptions options) {
-        Validate.isTrue(field.matches(Sequelize.FIELD_NAME_REGEX.pattern()), "Field " + field + " must match following pattern: " + Sequelize.FIELD_NAME_REGEX.pattern());
+    public Promise<CollectionList<TableData>> upsert(UpsertOptions options) {
         if (((CollectionList<TableData>) Objects.requireNonNull(await(findAll(options), null))).size() == 0) {
-            return async(o -> ICollectionList.ArrayOf((TableData) await(insert(options), null)));
+            return async(o -> ICollectionList.ArrayOf(insert(options).complete()));
         } else {
-            return update(field, options);
+            return update(options);
         }
     }
 
@@ -301,7 +305,7 @@ public class Table implements ITable {
         return async(o0 -> {
             CollectionList<TableData> data = (CollectionList<TableData>) await(findAll(options), null);
             if (data == null) throw new NullPointerException();
-            data.forEach(t -> options.getFieldsMap().forEach((k, i) -> awaitT(t.update(k, t.getInteger(k) + i, options))));
+            data.forEach(t -> options.getFieldsMap().forEach((k, i) -> t.update(k, t.getInteger(k) + i, options).complete()));
             return null;
         });
     }
