@@ -1,62 +1,82 @@
 package xyz.acrylicstyle.sql.options;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import xyz.acrylicstyle.sql.Validate;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public interface FindOptions extends SortOptions {
-    default Map<String, Object> where() { return null; }
+    @Nullable
+    default Map<String, Object> where() { return new HashMap<>(); }
+
+    @Nullable
     default Integer limit() { return null; }
 
     class Builder {
-        Map<String, Object> where;
+        @NotNull
+        private final Map<String, Object> where;
 
-        String orderBy = null;
+        @Nullable
+        private String orderBy = null;
 
-        Sort order = Sort.ASC;
+        @NotNull
+        private Sort order = Sort.ASC;
 
-        Integer limit = null;
+        private Integer limit = null;
 
         public Builder() {
             this.where = new HashMap<>();
         }
 
-        public Builder addWhere(String key, Object value) {
+        @Contract("_, _ -> this")
+        @NotNull
+        public Builder addWhere(@NotNull String key, @Nullable Object value) {
+            Validate.notNull(key, "key cannot be null");
             where.put(key, value);
             return this;
         }
 
-        public Builder setOrderBy(String orderBy) {
+        @Contract("_ -> this")
+        @NotNull
+        public Builder setOrderBy(@Nullable String orderBy) {
             this.orderBy = orderBy;
             return this;
         }
 
-        public Builder setOrder(Sort order) {
-            Validate.notNull(order, "Order cannot be null");
+        @Contract("_ -> this")
+        @NotNull
+        public Builder setOrder(@NotNull Sort order) {
+            Validate.notNull(order, "order cannot be null");
             this.order = order;
             return this;
         }
 
-        public Builder setLimit(Integer limit) {
+        @Contract("_ -> this")
+        @NotNull
+        public Builder setLimit(@Nullable Integer limit) {
             this.limit = limit;
             return this;
         }
 
+        @Contract("-> new")
+        @NotNull
         public FindOptions build() {
             return new FindOptions() {
                 @Override
-                public Map<String, Object> where() {
+                public @NotNull Map<String, Object> where() {
                     return Builder.this.where;
                 }
 
                 @Override
-                public String orderBy() {
+                public @Nullable String orderBy() {
                     return Builder.this.orderBy;
                 }
 
                 @Override
-                public Sort order() {
+                public @NotNull Sort order() {
                     return Builder.this.order;
                 }
 

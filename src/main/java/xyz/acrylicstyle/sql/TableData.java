@@ -19,7 +19,6 @@ import java.sql.Timestamp;
 public class TableData implements ITable {
     private final Table table;
     private final Connection connection;
-    @SuppressWarnings({"unused", "FieldCanBeLocal"})
     private final StringCollection<TableDefinition> definitions;
     private StringCollection<Object> values;
     private final String statement;
@@ -28,23 +27,60 @@ public class TableData implements ITable {
         this.table = table;
         this.connection = connection;
         this.definitions = definitions;
-        this.values = values;
+        this.values = values == null ? new StringCollection<>() : values;
         this.statement = statement;
     }
 
+    /**
+     * Returns the all table definitions
+     * @return table definitions
+     */
+    @NotNull
+    public StringCollection<TableDefinition> getDefinitions() {
+        return definitions;
+    }
+
+    /**
+     * @return the table
+     */
+    @NotNull
+    public Table getTable() {
+        return table;
+    }
+
+    /**
+     * @return the statement which was used to obtain this TableData.
+     */
+    @NotNull
     public String getStatement() {
         return statement;
     }
 
+    /**
+     * @return the connection that was used to execute statement
+     */
+    @NotNull
     @Override
     public Connection getConnection() { return connection; }
 
+    /**
+     * @return name of the table
+     */
+    @NotNull
     @Override
     public String getName() { return table.getName(); }
 
+    /**
+     * @return values (query result)
+     */
+    @NotNull
     public StringCollection<Object> getValues() { return values; }
 
-    void setValues(StringCollection<Object> o) { this.values = o; }
+    /**
+     * An internal method used to update existing table data.
+     * @param o new values
+     */
+    void setValues(StringCollection<Object> o) { this.values = o == null ? new StringCollection<>() : o; }
 
     /**
      * {@inheritDoc}
@@ -113,11 +149,17 @@ public class TableData implements ITable {
         return table.delete(options);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Promise<Void> increment(@NotNull IncrementOptions options) {
         return table.increment(options);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Promise<Void> decrement(@NotNull IncrementOptions options) {
         return table.decrement(options);
@@ -143,54 +185,22 @@ public class TableData implements ITable {
         Object value = values.get(field);
         if (value == null) return null;
         TableDefinition def = definitions.get(field);
-        Class<?> type = toClass(def.getType());
+        Class<?> type = def.getType().toClass();
         if (type.equals(Boolean.class) && value.getClass().equals(Integer.class)) value = ((int) value) != 0;
         if (type.equals(clazz) || type.getCanonicalName().equals(clazz.getCanonicalName())) return (T) value;
         throw new IncompatibleTypeException(def.getType(), type, value.getClass());
     }
 
-    @NotNull
-    private Class<?> toClass(@NotNull DataType type) {
-        switch (type) {
-            case TINYINT:
-                return Byte.class;
-            case SMALLINT:
-                return Short.class;
-            case INTEGER:
-            case INT:
-            case MEDIUMINT:
-                return Integer.class;
-            case BIGINT:
-                return Long.class;
-            case FLOAT:
-                return Float.class;
-            case DECIMAL:
-                return BigDecimal.class;
-            case CHAR:
-            case STRING:
-            case TEXT:
-                return String.class;
-            case BOOL:
-            case BOOLEAN:
-            case BIT:
-                return Boolean.class;
-            case BINARY:
-            case VARBINARY:
-                return Byte[].class;
-            case DATETIME:
-            case TIMESTAMP:
-                return Timestamp.class;
-            case DATE:
-                return Date.class;
-            case TIME:
-                return Time.class;
-            case ENUM:
-                return Enum.class;
-            case DOUBLE:
-                return Double.class;
-            default:
-                return Object.class;
-        }
+    /**
+     * Get field's value.
+     * @param field Name of field
+     * @throws IncompatibleTypeException When couldn't cast to clazz
+     * @throws IllegalArgumentException if the DataType is special type
+     * @return Value casted to the T
+     */
+    public <T> T get(String field, DataType<T> type) throws IncompatibleTypeException {
+        if (type.isSpecialType()) throw new IllegalArgumentException("Cannot get special type");
+        return get(field, type.toClass());
     }
 
     public Integer getInteger(String field) throws IncompatibleTypeException {
@@ -251,6 +261,6 @@ public class TableData implements ITable {
 
     @Override
     public String toString() {
-        return "TableData{name='" + getName() + "}";
+        return "TableData{table='" + table.getName() + "', values=" + values + "}";
     }
 }

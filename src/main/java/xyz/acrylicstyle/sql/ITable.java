@@ -8,7 +8,7 @@ import xyz.acrylicstyle.sql.options.IncrementOptions;
 import xyz.acrylicstyle.sql.options.InsertOptions;
 import xyz.acrylicstyle.sql.options.UpsertOptions;
 
-public interface ITable extends IUtils {
+public interface ITable extends SQLConnectionHolder {
     String getName();
 
     /**

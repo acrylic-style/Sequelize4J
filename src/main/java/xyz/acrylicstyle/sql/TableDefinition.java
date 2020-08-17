@@ -9,7 +9,7 @@ public abstract class TableDefinition {
     /**
      * @return Data type of this field. Required.
      */
-    public abstract DataType getType();
+    public abstract DataType<?> getType();
 
     public final boolean isRequired() { return (getDefaultValue() == null || !allowNull()) && !isAutoIncrement(); }
 
@@ -35,13 +35,13 @@ public abstract class TableDefinition {
 
     public static class Builder {
         private final String name;
-        private final DataType dataType;
+        private final DataType<?> dataType;
         private boolean primaryKey = false;
         private boolean autoIncrement = false;
         private Object defaultValue = null;
         private boolean allowNull = true;
 
-        public Builder(String name, DataType dataType) {
+        public Builder(String name, DataType<?> dataType) {
             Validate.notNull(name, "Name cannot be null");
             Validate.notNull(dataType, "Data type cannot be null");
             this.name = name;
@@ -76,7 +76,7 @@ public abstract class TableDefinition {
                 }
 
                 @Override
-                public DataType getType() {
+                public DataType<?> getType() {
                     return dataType;
                 }
 
