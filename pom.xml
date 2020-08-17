@@ -5,9 +5,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>xyz.acrylicstyle</groupId>
-    <artifactId>Sequelize4J</artifactId>
+    <artifactId>sequelize4j</artifactId>
     <version>0.3.0</version>
     <build>
+        <finalName>sequelize4j</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
