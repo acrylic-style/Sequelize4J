@@ -59,14 +59,14 @@ public class Table implements ITable {
                     StringBuilder sb = new StringBuilder("select * from " + getName());
                     CollectionList<Object> values = new CollectionList<>();
                     if (options != null) {
-                        if (options.where() != null && options.where().size() != 0) {
+                        if (options.where() != null && Objects.requireNonNull(options.where()).size() != 0) {
                             sb.append(" where ");
-                            options.where().forEach((k, v) -> {
+                            Objects.requireNonNull(options.where()).forEach((k, v) -> {
                                 values.add(v);
                                 sb.append(k).append("=?").append(" ");
                             });
                         }
-                        if (options.orderBy() != null && !options.orderBy().equals("")) {
+                        if (options.orderBy() != null && !Objects.equals(options.orderBy(), "")) {
                             sb.append(" order by ").append(options.orderBy()).append(" ").append(options.order().name());
                         }
                         if (options.limit() != null) sb.append(" limit ").append(options.limit());
@@ -97,7 +97,7 @@ public class Table implements ITable {
                 } catch (CommunicationsException e2) {
                     try {
                         sequelize.authenticate();
-                        return null;
+                        return findAll(options).complete();
                     } catch (SQLException e3) {
                         throw new RuntimeException(e3);
                     }
@@ -111,11 +111,13 @@ public class Table implements ITable {
     /**
      * {@inheritDoc}
      */
-    @SuppressWarnings("unchecked")
     @Override
     public Promise<TableData> findOne(FindOptions options) {
+        findAll(options).then(list -> {
+            return list.size() == 0 ? null : list.first();
+        });
         return async(o0 -> {
-            CollectionList<TableData> list = (CollectionList<TableData>) await(findAll(options), null);
+            CollectionList<TableData> list = findAll(options).complete();
             assert list != null;
             return list.size() == 0 ? null : list.first();
         });

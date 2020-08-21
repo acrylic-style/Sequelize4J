@@ -9,13 +9,13 @@ import java.sql.Time;
 import java.sql.Timestamp;
 
 public class DataType<T> {
-    public static final DataType<String> STRING = new DataType<>("STRING", "VARCHAR(65535)"); // => getString
+    public static final DataType<String> STRING = new DataType<>("STRING", "VARCHAR(255)"); // => getString
     public static final DataType<Long> BIGINT = new DataType<>("BIGINT", "BIGINT(255)"); // => getLong
     public static final DataType<Integer> INT = new DataType<>("INT", "INT(255)"); // => getInt
     public static final DataType<Integer> INTEGER = new DataType<>("INTEGER", "INT(255)");
-    public static final DataType<Short> SMALLINT = new DataType<>("SMALLINT", "SMALLINT");
-    public static final DataType<Integer> MEDIUMINT = new DataType<>("MEDIUMINT", "MEDIUMINT");
-    public static final DataType<Byte> TINYINT = new DataType<>("TINYINT", "TINYINT");
+    public static final DataType<Short> SMALLINT = new DataType<>("SMALLINT", "SMALLINT(255)");
+    public static final DataType<Integer> MEDIUMINT = new DataType<>("MEDIUMINT", "MEDIUMINT(255)");
+    public static final DataType<Byte> TINYINT = new DataType<>("TINYINT", "TINYINT(255)");
     public static final DataType<Boolean> BOOL = new DataType<>("BOOL", "BOOLEAN");
     public static final DataType<Boolean> BOOLEAN = new DataType<>("BOOLEAN", "BOOLEAN");
     public static final DataType<BigDecimal> DECIMAL = new DataType<>("DECIMAL", "DECIMAL");
@@ -29,8 +29,8 @@ public class DataType<T> {
     public static final DataType<String> CHAR = new DataType<>("CHAR", "CHAR");
     public static final DataType<Byte[]> BINARY = new DataType<>("BINARY", "BINARY");
     public static final DataType<Byte[]> VARBINARY = new DataType<>("VARBINARY", "VARBINARY");
-    public static final DataType<Byte[]> BLOB = new DataType<>("BLOB", "BLOB");
-    public static final DataType<String> TEXT = new DataType<>("TEXT", "TEXT");
+    public static final DataType<Byte[]> BLOB = new DataType<>("BLOB", "BLOB(65535)");
+    public static final DataType<String> TEXT = new DataType<>("TEXT", "TEXT(65535)");
     public static final DataType<Enum<?>> ENUM = new DataType<>("ENUM", "ENUM");
     public static final DataType<Enum<?>> SET = new DataType<>("SET", "SET");
     public static final DataType<Date> DATE = new DataType<>("DATE", "DATE");
