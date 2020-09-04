@@ -18,7 +18,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static util.promise.Promise.async;
 import static util.promise.Promise.await;
@@ -113,9 +115,7 @@ public class Table implements ITable {
      */
     @Override
     public Promise<TableData> findOne(FindOptions options) {
-        findAll(options).then(list -> {
-            return list.size() == 0 ? null : list.first();
-        });
+        findAll(options).then(list -> list.size() == 0 ? null : list.first());
         return async(o0 -> {
             CollectionList<TableData> list = findAll(options).complete();
             assert list != null;
@@ -178,29 +178,39 @@ public class Table implements ITable {
      * @return
      */
     @Override
-    public Promise<CollectionList<TableData>> update(@NotNull UpsertOptions options) {
+    public @NotNull Promise<@NotNull CollectionList<@NotNull TableData>> update(@NotNull UpsertOptions options) {
         Validate.isTrue(options.getValues() != null && options.getValues().size() != 0, "Values must be specified.");
         return new Promise<CollectionList<TableData>>() {
-            @SuppressWarnings("unchecked")
             @Override
             public CollectionList<TableData> apply(Object o0) {
                 try {
-                    CollectionList<TableData> dataList = (CollectionList<TableData>) await(findAll(options), null);
+                    CollectionList<TableData> dataList = findAll(options).complete();
                     String columns = options.getValues().keysList().map(s -> s + " = ?").join(", ");
                     StringBuilder sb = new StringBuilder("update " + getName() + " set " + columns);
-                    if (options.where() != null) {
+                    @Nullable final Map<String, Object> where = options.where();
+                    if (where != null) {
                         sb.append(" where ");
-                        options.where().forEach((k, v) -> sb.append(k).append("=").append(v).append(" "));
+                        sb.append(new CollectionList<>(where.keySet()).map(s -> s + " = ?").join(", ")).append(" ");
                     }
                     sb.append(";");
                     PreparedStatement statement = connection.prepareStatement(sb.toString());
+                    AtomicInteger index = new AtomicInteger();
                     options.getValues().valuesList().foreach((o, i) -> {
                         try {
-                            statement.setObject(i + 1, o);
+                            statement.setObject(index.incrementAndGet(), o);
                         } catch (SQLException e) {
                             e.printStackTrace();
                         }
                     });
+                    if (where != null) {
+                        where.values().forEach(o -> {
+                            try {
+                                statement.setObject(index.incrementAndGet(), o);
+                            } catch (SQLException e) {
+                                e.printStackTrace();
+                            }
+                        });
+                    }
                     statement.executeUpdate();
                     assert dataList != null;
                     return dataList.map(td -> {
@@ -210,10 +220,10 @@ public class Table implements ITable {
                 } catch (CommunicationsException e2) {
                     try {
                         sequelize.authenticate();
-                        return null;
                     } catch (SQLException e3) {
                         throw new RuntimeException(e3);
                     }
+                    return update(options).complete();
                 } catch (SQLException e) { throw new RuntimeException(e); }
             }
         };

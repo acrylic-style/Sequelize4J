@@ -51,9 +51,7 @@ public class Sequelize implements ISQLUtils {
         this.password = Validate.notNull(password, "Password cannot be null");
     }
 
-    public Sequelize(@NotNull String url) {
-        this.url = Validate.notNull(url, "URL cannot be null");
-    }
+    public Sequelize(@NotNull String url) { this.url = Validate.notNull(url, "URL cannot be null"); }
 
     /**
      * Creates connection between database.
@@ -192,14 +190,15 @@ public class Sequelize implements ISQLUtils {
         AtomicReference<SQLException> ex = new AtomicReference<>();
         definitions.forEach((table, definitionArr) -> {
             try {
-                CollectionList<TableDefinition> primaryKeys = ICollectionList.asList(definitionArr).filter(TableDefinition::isPrimaryKey);
+                CollectionList<TableDefinition> list = ICollectionList.asList(definitionArr);
+                CollectionList<TableDefinition> primaryKeys = list.filter(TableDefinition::isPrimaryKey);
                 // primary key amount check
                 if (primaryKeys.size() > 1) throw new IllegalArgumentException("Table " + table + " cannot have primary key more than 1");
                 TableDefinition primaryKey = primaryKeys.size() == 0 ? null : primaryKeys.first();
                 StringBuilder sb = new StringBuilder();
                 sb.append("create table ").append(force ? "" : "if not exists").append(" ").append(table).append(" (");
                 CollectionList<Object> values = new CollectionList<>();
-                ICollectionList.asList(definitionArr).foreach((def, index, list) -> {
+                list.foreach((def, index) -> {
                     sb.append(def.getName())
                             .append(" ")
                             .append(def.getType().getType())
