@@ -118,7 +118,7 @@ public class Sequelize implements ISQLUtils {
         Properties properties = p == null ? new Properties() : p;
         if (this.user != null) properties.setProperty("user", this.user);
         if (this.password != null) properties.setProperty("password", this.password);
-        properties.put("maxReconnects", properties.getOrDefault("maxReconnects", 100));
+        properties.put("maxReconnects", properties.getOrDefault("maxReconnects", 1));
         properties.put("autoReconnect", properties.getOrDefault("autoReconnect", true));
         StringBuilder sb = new StringBuilder("?");
         AtomicBoolean first = new AtomicBoolean(false);
