@@ -21,6 +21,7 @@ import java.sql.Statement;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static util.promise.Promise.async;
 import static util.promise.Promise.await;
@@ -281,22 +282,35 @@ public class Table implements ITable {
      * {@inheritDoc}
      */
     @Override
-    public @NotNull Promise<CollectionList<TableData>> delete(FindOptions options) {
-        Validate.isTrue(options.where() != null && options.where().size() != 0, "FindOptions(with where clause) must be provided.");
+    public @NotNull Promise<CollectionList<TableData>> delete(@Nullable FindOptions options) {
+        if (options == null) options = new FindOptions.Builder().addWhere("true", true).build();
+        Validate.isTrue(options.where() != null && Objects.requireNonNull(options.where()).size() != 0, "FindOptions(with where clause) must be provided.");
+        FindOptions finalOptions = options;
         return new Promise<CollectionList<TableData>>() {
             @SuppressWarnings("unchecked")
             @Override
             public CollectionList<TableData> apply(Object o) {
                 try {
-                    CollectionList<TableData> dataList = (CollectionList<TableData>) await(findAll(options), null);
+                    CollectionList<TableData> dataList = (CollectionList<TableData>) await(findAll(finalOptions), null);
                     StringBuilder sb = new StringBuilder("delete from " + getName());
-                    if (options.where() != null) {
+                    if (finalOptions.where() != null) {
                         sb.append(" where ");
-                        options.where().forEach((k, v) -> sb.append(k).append("=").append(v).append(" "));
+                        Objects.requireNonNull(finalOptions.where()).forEach((k, v) -> sb.append(k).append("=? "));
                     } else throw new IllegalArgumentException("Where clause must be provided.");
+                    if (finalOptions.limit() != null) sb.append(" limit ").append(finalOptions.limit()).append(" ");
                     sb.append(";");
-                    Statement statement = connection.createStatement();
-                    statement.executeUpdate(sb.toString());
+                    PreparedStatement statement = connection.prepareStatement(sb.toString());
+                    AtomicReference<SQLException> exception = new AtomicReference<>();
+                    new CollectionList<>(Objects.requireNonNull(finalOptions.where()).values()).foreach((o2, i) -> {
+                        if (exception.get() != null) return;
+                        try {
+                            statement.setObject(1 + i, o2);
+                        } catch (SQLException t) {
+                            exception.set(t);
+                        }
+                    });
+                    if (exception.get() != null) throw exception.get();
+                    statement.executeUpdate();
                     return dataList;
                 } catch (CommunicationsException e2) {
                     try {
