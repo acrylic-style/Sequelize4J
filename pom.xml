@@ -40,6 +40,10 @@
             <url>https://repo.acrylicstyle.xyz</url>
         </repository>
         <repository>
+            <id>acrylic-repo2</id>
+            <url>https://repo2.acrylicstyle.xyz</url>
+        </repository>
+        <repository>
             <id>central</id>
             <url>https://repo1.maven.org/maven2/</url>
         </repository>
