@@ -6,7 +6,7 @@
 
     <groupId>xyz.acrylicstyle</groupId>
     <artifactId>sequelize4j</artifactId>
-    <version>0.3.3</version>
+    <version>0.3.4</version>
     <build>
         <finalName>sequelize4j</finalName>
         <plugins>
@@ -48,7 +48,7 @@
         <dependency>
             <groupId>xyz.acrylicstyle</groupId>
             <artifactId>java-util-all</artifactId>
-            <version>0.11.22</version>
+            <version>0.11.29a</version>
         </dependency>
         <dependency>
             <groupId>org.jetbrains</groupId>
