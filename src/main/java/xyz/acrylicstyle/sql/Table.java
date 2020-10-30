@@ -17,7 +17,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -64,10 +63,7 @@ public class Table implements ITable {
                     if (options != null) {
                         if (options.where() != null && Objects.requireNonNull(options.where()).size() != 0) {
                             sb.append(" where ");
-                            Objects.requireNonNull(options.where()).forEach((k, v) -> {
-                                values.add(v);
-                                sb.append(k).append("=?").append(" ");
-                            });
+                            sb.append(new CollectionList<>(Objects.requireNonNull(options.where()).keySet()).map(s -> s + "=?").join(" and ")).append(" ");
                         }
                         if (options.orderBy() != null && !Objects.equals(options.orderBy(), "")) {
                             sb.append(" order by ").append(options.orderBy()).append(" ").append(options.order().name());
@@ -128,13 +124,12 @@ public class Table implements ITable {
      * {@inheritDoc}
      * @return
      */
-    @SuppressWarnings("unchecked")
     @Override
     public Promise<CollectionList<TableData>> update(String field, Object value, FindOptions options) {
         Validate.isTrue(field.matches(Sequelize.FIELD_NAME_REGEX.pattern()), "Field " + field + " must match following pattern: " + Sequelize.FIELD_NAME_REGEX.pattern());
         return async(o1 -> {
             try {
-                CollectionList<TableData> dataList = (CollectionList<TableData>) await(findAll(options), null);
+                CollectionList<TableData> dataList = findAll(options).complete();
                 StringBuilder sb = new StringBuilder("update " + getName() + " set " + field + "=?");
                 CollectionList<Object> values = new CollectionList<>();
                 if (options != null && options.where() != null) {
@@ -142,7 +137,7 @@ public class Table implements ITable {
                     ICollection.asCollection(options.where()).forEach((k, v, i, a) -> {
                         values.add(v);
                         sb.append(k).append("=?");
-                        if (i != 0) sb.append(",");
+                        if (i != 0) sb.append(" and ");
                     });
                 }
                 sb.append(";");
@@ -156,7 +151,6 @@ public class Table implements ITable {
                     }
                 });
                 statement.executeUpdate();
-                assert dataList != null;
                 return dataList.map(td -> {
                     StringCollection<Object> values2 = td.getValues();
                     values2.add(field, value);
@@ -191,7 +185,7 @@ public class Table implements ITable {
                     @Nullable final Map<String, Object> where = options.where();
                     if (where != null) {
                         sb.append(" where ");
-                        sb.append(new CollectionList<>(where.keySet()).map(s -> s + " = ?").join(", ")).append(" ");
+                        sb.append(new CollectionList<>(where.keySet()).map(s -> s + " = ?").join(" and ")).append(" ");
                     }
                     sb.append(";");
                     PreparedStatement statement = connection.prepareStatement(sb.toString());
@@ -280,28 +274,29 @@ public class Table implements ITable {
 
     /**
      * {@inheritDoc}
+     * If you (really) want to delete everything, use {@link FindOptions#ALL}.
      */
     @Override
-    public @NotNull Promise<CollectionList<TableData>> delete(@Nullable FindOptions options) {
-        if (options == null) options = new FindOptions.Builder().addWhere("true", true).build();
+    public @NotNull Promise<CollectionList<TableData>> delete(@NotNull FindOptions options) {
+        //noinspection ConstantConditions
+        if (options == null) throw new IllegalArgumentException("FindOptions must be provided. (If you meant to delete everything, use FindOptions#ALL.)");
         Validate.isTrue(options.where() != null && Objects.requireNonNull(options.where()).size() != 0, "FindOptions(with where clause) must be provided.");
-        FindOptions finalOptions = options;
         return new Promise<CollectionList<TableData>>() {
             @SuppressWarnings("unchecked")
             @Override
             public CollectionList<TableData> apply(Object o) {
                 try {
-                    CollectionList<TableData> dataList = (CollectionList<TableData>) await(findAll(finalOptions), null);
+                    CollectionList<TableData> dataList = (CollectionList<TableData>) await(findAll(options), null);
                     StringBuilder sb = new StringBuilder("delete from " + getName());
-                    if (finalOptions.where() != null) {
+                    if (options.where() != null) {
                         sb.append(" where ");
-                        Objects.requireNonNull(finalOptions.where()).forEach((k, v) -> sb.append(k).append("=? "));
+                        sb.append(new CollectionList<>(Objects.requireNonNull(options.where()).keySet()).map(s -> s + "=?").join(" and ")).append(" ");
                     } else throw new IllegalArgumentException("Where clause must be provided.");
-                    if (finalOptions.limit() != null) sb.append(" limit ").append(finalOptions.limit()).append(" ");
+                    if (options.limit() != null) sb.append(" limit ").append(options.limit()).append(" ");
                     sb.append(";");
                     PreparedStatement statement = connection.prepareStatement(sb.toString());
                     AtomicReference<SQLException> exception = new AtomicReference<>();
-                    new CollectionList<>(Objects.requireNonNull(finalOptions.where()).values()).foreach((o2, i) -> {
+                    new CollectionList<>(Objects.requireNonNull(options.where()).values()).foreach((o2, i) -> {
                         if (exception.get() != null) return;
                         try {
                             statement.setObject(1 + i, o2);
