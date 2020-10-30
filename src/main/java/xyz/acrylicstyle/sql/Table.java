@@ -64,6 +64,7 @@ public class Table implements ITable {
                         if (options.where() != null && Objects.requireNonNull(options.where()).size() != 0) {
                             sb.append(" where ");
                             sb.append(new CollectionList<>(Objects.requireNonNull(options.where()).keySet()).map(s -> s + "=?").join(" and ")).append(" ");
+                            values.addAll(Objects.requireNonNull(options.where()).values());
                         }
                         if (options.orderBy() != null && !Objects.equals(options.orderBy(), "")) {
                             sb.append(" order by ").append(options.orderBy()).append(" ").append(options.order().name());
