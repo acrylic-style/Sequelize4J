@@ -54,6 +54,24 @@ public class Sequelize implements ISQLUtils {
     public Sequelize(@NotNull String url) { this.url = Validate.notNull(url, "URL cannot be null"); }
 
     /**
+     * Returns MySQL jdbc driver.
+     * @return mysql driver, null if not found
+     */
+    @Nullable
+    public static Driver getMySQLDriver() {
+        Driver driver = null;
+        try {
+            driver = (Driver) Class.forName("com.mysql.cj.jdbc.Driver").newInstance();
+        } catch (ReflectiveOperationException ignored) {}
+        if (driver == null) {
+            try {
+                driver = (Driver) Class.forName("com.mysql.jdbc.Driver").newInstance();
+            } catch (ReflectiveOperationException ignored) {}
+        }
+        return driver;
+    }
+
+    /**
      * Creates connection between database.
      * @param url an database URL
      * @param properties a properties (you may need to provide credentials via properties)
