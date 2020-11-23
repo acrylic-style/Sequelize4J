@@ -232,7 +232,7 @@ public class Table implements ITable {
     @SuppressWarnings("unchecked")
     public Promise<CollectionList<TableData>> upsert(UpsertOptions options) {
         if (((CollectionList<TableData>) Objects.requireNonNull(await(findAll(options), null))).size() == 0) {
-            return async(o -> ICollectionList.ArrayOf(insert(options).complete()));
+            return async(o -> ICollectionList.of(insert(options).complete()));
         } else {
             return update(options);
         }
