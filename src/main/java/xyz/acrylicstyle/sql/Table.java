@@ -1,5 +1,6 @@
 package xyz.acrylicstyle.sql;
 
+import com.mysql.cj.exceptions.CJCommunicationsException;
 import com.mysql.cj.jdbc.exceptions.CommunicationsException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -94,7 +95,7 @@ public class Table implements ITable {
                         tableData.add(new TableData(Table.this, connection, getDefinitions(), v, sb.toString()));
                     }
                     return tableData;
-                } catch (CommunicationsException e2) {
+                } catch (CommunicationsException | CJCommunicationsException e2) {
                     try {
                         sequelize.authenticate();
                         return findAll(options).complete();
@@ -158,7 +159,7 @@ public class Table implements ITable {
                     td.setValues(values2);
                     return td;
                 });
-            } catch (CommunicationsException e2) {
+            } catch (CommunicationsException | CJCommunicationsException e2) {
                 try {
                     sequelize.authenticate();
                     return null;
@@ -213,7 +214,7 @@ public class Table implements ITable {
                         td.setValues(options.getValues());
                         return td;
                     });
-                } catch (CommunicationsException e2) {
+                } catch (CommunicationsException | CJCommunicationsException e2) {
                     try {
                         sequelize.authenticate();
                     } catch (SQLException e3) {
@@ -261,12 +262,12 @@ public class Table implements ITable {
                     });
                     statement.executeUpdate();
                     return new TableData(Table.this, connection, getDefinitions(), options.getValues(), sql);
-                } catch (CommunicationsException e2) {
+                } catch (CommunicationsException | CJCommunicationsException e2) {
                     try {
                         sequelize.authenticate();
                         return null;
                     } catch (SQLException e3) {
-                        throw new RuntimeException(e3);
+                        throw new RuntimeException("Could not reconnect to database", e3);
                     }
                 } catch (SQLException e) { throw new RuntimeException(e); }
             }
@@ -308,7 +309,7 @@ public class Table implements ITable {
                     if (exception.get() != null) throw exception.get();
                     statement.executeUpdate();
                     return dataList;
-                } catch (CommunicationsException e2) {
+                } catch (CommunicationsException | CJCommunicationsException e2) {
                     try {
                         sequelize.authenticate();
                         return null;
@@ -353,7 +354,7 @@ public class Table implements ITable {
             try {
                 connection.createStatement().executeUpdate("drop table if exists " + getName());
                 return null;
-            } catch (CommunicationsException e2) {
+            } catch (CommunicationsException | CJCommunicationsException e2) {
                 try {
                     sequelize.authenticate();
                     return null;
