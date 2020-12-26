@@ -208,14 +208,14 @@ public class Sequelize implements ISQLUtils {
         AtomicReference<SQLException> ex = new AtomicReference<>();
         definitions.forEach((table, definitionArr) -> {
             try {
-                CollectionList<?, TableDefinition> list = ICollectionList.asList(definitionArr);
-                CollectionList<?, TableDefinition> primaryKeys = list.filter(TableDefinition::isPrimaryKey);
+                ICollectionList<TableDefinition> list = ICollectionList.asList(definitionArr);
+                ICollectionList<TableDefinition> primaryKeys = list.filter(TableDefinition::isPrimaryKey);
                 // primary key amount check
                 if (primaryKeys.size() > 1) throw new IllegalArgumentException("Table " + table + " cannot have primary key more than 1");
                 TableDefinition primaryKey = primaryKeys.size() == 0 ? null : primaryKeys.first();
                 StringBuilder sb = new StringBuilder();
                 sb.append("create table ").append(force ? "" : "if not exists").append(" ").append(table).append(" (");
-                CollectionList<?, Object> values = new CollectionList<>();
+                CollectionList<Object> values = new CollectionList<>();
                 list.foreach((def, index) -> {
                     sb.append(def.getName())
                             .append(" ")

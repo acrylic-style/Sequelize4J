@@ -54,13 +54,13 @@ public class Table implements ITable {
      * {@inheritDoc}
      */
     @Override
-    public Promise<CollectionList<?, TableData>> findAll(@Nullable FindOptions options) {
-        return new Promise<CollectionList<?, TableData>>() {
+    public Promise<CollectionList<TableData>> findAll(@Nullable FindOptions options) {
+        return new Promise<CollectionList<TableData>>() {
             @Override
-            public CollectionList<?, TableData> apply(Object o0) {
+            public CollectionList<TableData> apply(Object o0) {
                 try {
                     StringBuilder sb = new StringBuilder("select * from " + getName());
-                    CollectionList<?, Object> values = new CollectionList<>();
+                    CollectionList<Object> values = new CollectionList<>();
                     if (options != null) {
                         if (options.where() != null && Objects.requireNonNull(options.where()).size() != 0) {
                             sb.append(" where ");
@@ -82,7 +82,7 @@ public class Table implements ITable {
                         }
                     });
                     ResultSet result = statement.executeQuery();
-                    CollectionList<?, TableData> tableData = new CollectionList<>();
+                    CollectionList<TableData> tableData = new CollectionList<>();
                     while (result.next()) {
                         StringCollection<Object> v = new StringCollection<>();
                         getDefinitions().forEach((k, d) -> {
@@ -116,7 +116,7 @@ public class Table implements ITable {
     public Promise<TableData> findOne(FindOptions options) {
         findAll(options).then(list -> list.size() == 0 ? null : list.first());
         return async(o0 -> {
-            CollectionList<?, TableData> list = findAll(options).complete();
+            CollectionList<TableData> list = findAll(options).complete();
             assert list != null;
             return list.size() == 0 ? null : list.first();
         });
@@ -127,13 +127,13 @@ public class Table implements ITable {
      * @return
      */
     @Override
-    public Promise<CollectionList<?, TableData>> update(String field, Object value, FindOptions options) {
+    public Promise<CollectionList<TableData>> update(String field, Object value, FindOptions options) {
         Validate.isTrue(field.matches(Sequelize.FIELD_NAME_REGEX.pattern()), "Field " + field + " must match following pattern: " + Sequelize.FIELD_NAME_REGEX.pattern());
         return async(o1 -> {
             try {
-                CollectionList<?, TableData> dataList = findAll(options).complete();
+                CollectionList<TableData> dataList = findAll(options).complete();
                 StringBuilder sb = new StringBuilder("update " + getName() + " set " + field + "=?");
-                CollectionList<?, Object> values = new CollectionList<>();
+                CollectionList<Object> values = new CollectionList<>();
                 if (options != null && options.where() != null) {
                     sb.append(" where ");
                     ICollection.asCollection(options.where()).forEach((k, v, i, a) -> {
@@ -175,13 +175,13 @@ public class Table implements ITable {
      * @return
      */
     @Override
-    public @NotNull Promise<@NotNull CollectionList<?, @NotNull TableData>> update(@NotNull UpsertOptions options) {
+    public @NotNull Promise<@NotNull CollectionList<@NotNull TableData>> update(@NotNull UpsertOptions options) {
         Validate.isTrue(options.getValues() != null && options.getValues().size() != 0, "Values must be specified.");
-        return new Promise<CollectionList<?, TableData>>() {
+        return new Promise<CollectionList<TableData>>() {
             @Override
-            public CollectionList<?, TableData> apply(Object o0) {
+            public CollectionList<TableData> apply(Object o0) {
                 try {
-                    CollectionList<?, TableData> dataList = findAll(options).complete();
+                    CollectionList<TableData> dataList = findAll(options).complete();
                     String columns = options.getValues().keysList().map(s -> s + " = ?").join(", ");
                     StringBuilder sb = new StringBuilder("update " + getName() + " set " + columns);
                     @Nullable final Map<String, Object> where = options.where();
@@ -231,9 +231,9 @@ public class Table implements ITable {
      */
     @Override
     @SuppressWarnings("unchecked")
-    public Promise<CollectionList<?, TableData>> upsert(UpsertOptions options) {
-        if (((CollectionList<?, TableData>) Objects.requireNonNull(await(findAll(options), null))).size() == 0) {
-            return async(o -> (CollectionList<?, TableData>) ICollectionList.of(insert(options).complete()));
+    public Promise<CollectionList<TableData>> upsert(UpsertOptions options) {
+        if (((CollectionList<TableData>) Objects.requireNonNull(await(findAll(options), null))).size() == 0) {
+            return async(o -> (CollectionList<TableData>) ICollectionList.of(insert(options).complete()));
         } else {
             return update(options);
         }
@@ -279,16 +279,16 @@ public class Table implements ITable {
      * If you (really) want to delete everything, use {@link FindOptions#ALL}.
      */
     @Override
-    public @NotNull Promise<CollectionList<?, TableData>> delete(@NotNull FindOptions options) {
+    public @NotNull Promise<CollectionList<TableData>> delete(@NotNull FindOptions options) {
         //noinspection ConstantConditions
         if (options == null) throw new IllegalArgumentException("FindOptions must be provided. (If you meant to delete everything, use FindOptions#ALL.)");
         Validate.isTrue(options.where() != null && Objects.requireNonNull(options.where()).size() != 0, "FindOptions(with where clause) must be provided.");
-        return new Promise<CollectionList<?, TableData>>() {
+        return new Promise<CollectionList<TableData>>() {
             @SuppressWarnings("unchecked")
             @Override
-            public CollectionList<?, TableData> apply(Object o) {
+            public CollectionList<TableData> apply(Object o) {
                 try {
-                    CollectionList<?, TableData> dataList = (CollectionList<?, TableData>) await(findAll(options), null);
+                    CollectionList<TableData> dataList = (CollectionList<TableData>) await(findAll(options), null);
                     StringBuilder sb = new StringBuilder("delete from " + getName());
                     if (options.where() != null) {
                         sb.append(" where ");
@@ -326,7 +326,7 @@ public class Table implements ITable {
     public Promise<Void> increment(@NotNull IncrementOptions options) {
         Validate.isTrue(options.getFieldsMap() != null && options.getFieldsMap().size() != 0, "IncrementOptions(with fieldsMap) must be provided.");
         return async(o0 -> {
-            CollectionList<?, TableData> data = (CollectionList<?, TableData>) await(findAll(options), null);
+            CollectionList<TableData> data = (CollectionList<TableData>) await(findAll(options), null);
             if (data == null) throw new NullPointerException();
             data.forEach(t -> options.getFieldsMap().forEach((k, i) -> t.update(k, t.getInteger(k) + i, options).complete()));
             return null;
@@ -338,7 +338,7 @@ public class Table implements ITable {
     public Promise<Void> decrement(@NotNull IncrementOptions options) {
         Validate.isTrue(options.getFieldsMap() != null && options.getFieldsMap().size() != 0, "IncrementOptions(with fieldsMap) must be provided.");
         return async(o1 -> {
-            CollectionList<?, TableData> data = (CollectionList<?, TableData>) await(findAll(options), null);
+            CollectionList<TableData> data = (CollectionList<TableData>) await(findAll(options), null);
             if (data == null) return null;
             data.forEach(t -> options.getFieldsMap().forEach((k, i) -> awaitT(t.update(k, t.get(k, Integer.class) - i, options))));
             return null;
