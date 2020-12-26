@@ -16,7 +16,7 @@ public interface ITable extends SQLConnectionHolder {
      * @param options FindOptions. Required.
      * @return Found table datas. Can be converted into array using {@link CollectionList#toArray(Object[])} or {@link CollectionList#toArray()}
      */
-    Promise<CollectionList<TableData>> findAll(FindOptions options);
+    Promise<CollectionList<?, TableData>> findAll(FindOptions options);
 
     /**
      * Finds a data from table. If multiple data was found, the first data will be returned.
@@ -32,21 +32,21 @@ public interface ITable extends SQLConnectionHolder {
      * @param options Find Options. Required.
      * @return Updated table data.
      */
-    Promise<CollectionList<TableData>> update(String field, Object value, FindOptions options);
+    Promise<CollectionList<?, TableData>> update(String field, Object value, FindOptions options);
 
     /**
      * Updates multiple data.
      * @param options Options that contains values, and where clause.
      * @return Updated table data list.
      */
-    Promise<CollectionList<TableData>> update(UpsertOptions options);
+    Promise<CollectionList<?, TableData>> update(UpsertOptions options);
 
     /**
      * Insert a data if not exists, Update a data if exists.
      * @param options Upsert Options. Required.
      * @return Created or Updated Table data list.
      */
-    Promise<CollectionList<TableData>> upsert(UpsertOptions options);
+    Promise<CollectionList<?, TableData>> upsert(UpsertOptions options);
 
     /**
      * Insert a data into table.
@@ -68,7 +68,7 @@ public interface ITable extends SQLConnectionHolder {
      * @return Deleted rows
      */
     @NotNull
-    Promise<CollectionList<TableData>> delete(FindOptions options);
+    Promise<CollectionList<?, TableData>> delete(FindOptions options);
 
     /**
      * Increase a value by specified value.

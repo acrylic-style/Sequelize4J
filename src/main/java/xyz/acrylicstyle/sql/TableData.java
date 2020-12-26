@@ -86,7 +86,7 @@ public class TableData implements ITable {
      * {@inheritDoc}
      */
     @Override
-    public Promise<CollectionList<TableData>> findAll(FindOptions options) {
+    public Promise<CollectionList<?, TableData>> findAll(FindOptions options) {
         return table.findAll(options);
     }
 
@@ -102,7 +102,7 @@ public class TableData implements ITable {
      * {@inheritDoc}
      */
     @Override
-    public Promise<CollectionList<TableData>> update(String field, Object value, FindOptions options) {
+    public Promise<CollectionList<?, TableData>> update(String field, Object value, FindOptions options) {
         return table.update(field, value, options);
     }
 
@@ -111,7 +111,7 @@ public class TableData implements ITable {
      * @return
      */
     @Override
-    public Promise<CollectionList<TableData>> update(@NotNull UpsertOptions options) {
+    public Promise<CollectionList<?, TableData>> update(@NotNull UpsertOptions options) {
         return table.update(options);
     }
 
@@ -120,7 +120,7 @@ public class TableData implements ITable {
      * @return
      */
     @Override
-    public Promise<CollectionList<TableData>> upsert(UpsertOptions options) {
+    public Promise<CollectionList<?, TableData>> upsert(UpsertOptions options) {
         return table.update(options);
     }
 
@@ -145,7 +145,7 @@ public class TableData implements ITable {
      */
     @NotNull
     @Override
-    public Promise<CollectionList<TableData>> delete(@NotNull FindOptions options) {
+    public Promise<CollectionList<?, TableData>> delete(@NotNull FindOptions options) {
         return table.delete(options);
     }
 
