@@ -30,13 +30,13 @@ public class Sequelize implements ISQLUtils {
     @NotNull
     public String getURL() { return url; }
 
-    @NotNull
+    @Nullable
     public String getUser() { return user; }
 
     /**
      * Returns database password. You must always keep this secret.
      */
-    @NotNull
+    @Nullable
     public String getPassword() { return password; }
 
     public Sequelize(@NotNull String host, @NotNull String database, @NotNull String user, @NotNull String password) {
@@ -55,7 +55,7 @@ public class Sequelize implements ISQLUtils {
 
     /**
      * Returns MySQL jdbc driver.
-     * @return mysql driver, null if not found
+     * Requires mysql:mysql-connector-java.
      */
     @Nullable
     public static Driver getMySQLDriver() {
@@ -68,6 +68,32 @@ public class Sequelize implements ISQLUtils {
                 driver = (Driver) Class.forName("com.mysql.jdbc.Driver").newInstance();
             } catch (ReflectiveOperationException ignored) {}
         }
+        return driver;
+    }
+
+    /**
+     * Returns MariaDB jdbc driver.
+     * Requires org.mariadb.jdbc:mariadb-java-client.
+     */
+    @Nullable
+    public static Driver getMariaDBDriver() {
+        Driver driver = null;
+        try {
+            driver = (Driver) Class.forName("org.mariadb.jdbc.Driver").newInstance();
+        } catch (ReflectiveOperationException ignored) {}
+        return driver;
+    }
+
+    /**
+     * Returns MariaDB jdbc driver.
+     * Requires org.xerial:sqlite-jdbc.
+     */
+    @Nullable
+    public static Driver getSQLiteDriver() {
+        Driver driver = null;
+        try {
+            driver = (Driver) Class.forName("org.sqlite.JDBC").newInstance();
+        } catch (ReflectiveOperationException ignored) {}
         return driver;
     }
 
@@ -153,7 +179,7 @@ public class Sequelize implements ISQLUtils {
             }
         } else {
             if (driver == null) {
-                connection = DriverManager.getConnection(this.url + sb.toString());
+                connection = DriverManager.getConnection(this.url + sb);
             } else {
                 connection = driver.connect(this.url, properties);
             }
@@ -233,7 +259,7 @@ public class Sequelize implements ISQLUtils {
                 sb.append(");");
                 PreparedStatement statement = connection.prepareStatement(sb.toString());
                 values.foreach((o, index) -> {
-                    if (ex.get() != null) return; // if do we have an error before this state, don't go anymore
+                    if (ex.get() != null) return;
                     try {
                         statement.setObject(index + 1, o);
                     } catch (SQLException se) {
@@ -242,6 +268,7 @@ public class Sequelize implements ISQLUtils {
                 });
                 if (ex.get() != null) throw ex.get();
                 statement.executeUpdate();
+                statement.close();
             } catch (SQLException e) {
                 ex.set(e);
             }
@@ -286,9 +313,6 @@ public class Sequelize implements ISQLUtils {
         return new Table(table, definitions, connection, this);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Connection getConnection() { return connection; }
 

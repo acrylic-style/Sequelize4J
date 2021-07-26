@@ -132,6 +132,7 @@ public class Table implements ITable {
                     }
                 });
                 statement.executeUpdate();
+                statement.close();
                 context.resolve(dataList.map(td -> {
                     StringCollection<Object> values2 = td.getValues();
                     values2.add(field, value);
@@ -177,6 +178,7 @@ public class Table implements ITable {
                     });
                 }
                 statement.executeUpdate();
+                statement.close();
                 assert dataList != null;
                 context.resolve(dataList.map(td -> {
                     td.setValues(options.getValues());
@@ -216,6 +218,7 @@ public class Table implements ITable {
                     }
                 });
                 statement.executeUpdate();
+                statement.close();
                 context.resolve(new TableData(Table.this, connection, getDefinitions(), options.getValues(), sql));
             } catch (SQLException e) {
                 context.reject(new RuntimeException(e));
@@ -254,6 +257,7 @@ public class Table implements ITable {
                 });
                 if (exception.get() != null) throw exception.get();
                 statement.executeUpdate();
+                statement.close();
                 context.resolve(dataList);
             } catch (SQLException e) {
                 context.reject(new RuntimeException(e));
