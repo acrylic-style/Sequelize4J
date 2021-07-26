@@ -1,14 +1,12 @@
 package xyz.acrylicstyle.sql;
 
-import com.mysql.cj.exceptions.CJCommunicationsException;
-import com.mysql.cj.jdbc.exceptions.CommunicationsException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import util.CollectionList;
 import util.ICollection;
 import util.ICollectionList;
 import util.StringCollection;
-import util.promise.Promise;
+import util.promise.rewrite.Promise;
 import xyz.acrylicstyle.sql.options.FindOptions;
 import xyz.acrylicstyle.sql.options.IncrementOptions;
 import xyz.acrylicstyle.sql.options.InsertOptions;
@@ -23,21 +21,21 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static util.promise.Promise.async;
-import static util.promise.Promise.await;
-import static util.promise.Promise.awaitT;
-
 public class Table implements ITable {
     private final String name;
     private final StringCollection<TableDefinition> tableData;
     private final Connection connection;
     private final Sequelize sequelize;
 
-    public Table(String name, StringCollection<TableDefinition> tableData, Connection connection, Sequelize sequelize) {
+    Table(String name, StringCollection<TableDefinition> tableData, Connection connection, Sequelize sequelize) {
         this.name = name;
         this.tableData = tableData;
         this.connection = connection;
         this.sequelize = sequelize;
+    }
+
+    public Sequelize getSequelize() {
+        return sequelize;
     }
 
     public TableDefinition getDefinition(String field) { return tableData.get(field); }
@@ -50,86 +48,67 @@ public class Table implements ITable {
 
     public Connection getConnection() { return connection; }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Promise<CollectionList<TableData>> findAll(@Nullable FindOptions options) {
-        return new Promise<CollectionList<TableData>>() {
-            @Override
-            public CollectionList<TableData> apply(Object o0) {
-                try {
-                    StringBuilder sb = new StringBuilder("select * from " + getName());
-                    CollectionList<Object> values = new CollectionList<>();
-                    if (options != null) {
-                        if (options.where() != null && Objects.requireNonNull(options.where()).size() != 0) {
-                            sb.append(" where ");
-                            sb.append(new CollectionList<>(Objects.requireNonNull(options.where()).keySet()).map(s -> s + "=?").join(" and ")).append(" ");
-                            values.addAll(Objects.requireNonNull(options.where()).values());
-                        }
-                        if (options.orderBy() != null && !Objects.equals(options.orderBy(), "")) {
-                            sb.append(" order by ").append(options.orderBy()).append(" ").append(options.order().name());
-                        }
-                        if (options.limit() != null) sb.append(" limit ").append(options.limit());
+        return new Promise<>(context -> {
+            try {
+                StringBuilder sb = new StringBuilder("select * from " + getName());
+                CollectionList<Object> values = new CollectionList<>();
+                if (options != null) {
+                    if (options.where() != null && Objects.requireNonNull(options.where()).size() != 0) {
+                        sb.append(" where ");
+                        sb.append(new CollectionList<>(Objects.requireNonNull(options.where()).keySet()).map(s -> s + "=?").join(" and ")).append(" ");
+                        values.addAll(Objects.requireNonNull(options.where()).values());
                     }
-                    sb.append(";");
-                    PreparedStatement statement = connection.prepareStatement(sb.toString());
-                    values.foreach((o, i) -> {
+                    if (options.orderBy() != null && !Objects.equals(options.orderBy(), "")) {
+                        sb.append(" order by ").append(options.orderBy()).append(" ").append(options.order().name());
+                    }
+                    if (options.limit() != null) sb.append(" limit ").append(options.limit());
+                }
+                sb.append(";");
+                PreparedStatement statement = connection.prepareStatement(sb.toString());
+                values.foreach((o, i) -> {
+                    try {
+                        statement.setObject(i + 1, o);
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
+                });
+                ResultSet result = statement.executeQuery();
+                CollectionList<TableData> tableData = new CollectionList<>();
+                while (result.next()) {
+                    StringCollection<Object> v = new StringCollection<>();
+                    getDefinitions().forEach((k, d) -> {
                         try {
-                            statement.setObject(i + 1, o);
+                            v.add(k, result.getObject(k));
                         } catch (SQLException e) {
                             e.printStackTrace();
                         }
                     });
-                    ResultSet result = statement.executeQuery();
-                    CollectionList<TableData> tableData = new CollectionList<>();
-                    while (result.next()) {
-                        StringCollection<Object> v = new StringCollection<>();
-                        getDefinitions().forEach((k, d) -> {
-                            try {
-                                v.add(k, result.getObject(k));
-                            } catch (SQLException e) {
-                                e.printStackTrace();
-                            }
-                        });
-                        tableData.add(new TableData(Table.this, connection, getDefinitions(), v, sb.toString()));
-                    }
-                    return tableData;
-                } catch (CommunicationsException | CJCommunicationsException e2) {
-                    try {
-                        sequelize.authenticate();
-                        return findAll(options).complete();
-                    } catch (SQLException e3) {
-                        throw new RuntimeException(e3);
-                    }
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
+                    tableData.add(new TableData(Table.this, connection, getDefinitions(), v, sb.toString()));
                 }
+                result.close();
+                statement.close();
+                context.resolve(tableData);
+            } catch (SQLException e) {
+                context.reject(new RuntimeException(e));
             }
-        };
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Promise<TableData> findOne(FindOptions options) {
-        findAll(options).then(list -> list.size() == 0 ? null : list.first());
-        return async(o0 -> {
-            CollectionList<TableData> list = findAll(options).complete();
-            assert list != null;
-            return list.size() == 0 ? null : list.first();
         });
     }
 
-    /**
-     * {@inheritDoc}
-     * @return
-     */
+    @Override
+    public Promise<TableData> findOne(FindOptions options) {
+        return new Promise<>(context -> {
+            findAll(options).then(list -> list.size() == 0 ? null : list.first());
+            CollectionList<TableData> list = findAll(options).complete();
+            context.resolve(list.size() == 0 ? null : list.first());
+        });
+    }
+
     @Override
     public Promise<CollectionList<TableData>> update(String field, Object value, FindOptions options) {
         Validate.isTrue(field.matches(Sequelize.FIELD_NAME_REGEX.pattern()), "Field " + field + " must match following pattern: " + Sequelize.FIELD_NAME_REGEX.pattern());
-        return async(o1 -> {
+        return new Promise<>(context -> {
             try {
                 CollectionList<TableData> dataList = findAll(options).complete();
                 StringBuilder sb = new StringBuilder("update " + getName() + " set " + field + "=?");
@@ -153,125 +132,95 @@ public class Table implements ITable {
                     }
                 });
                 statement.executeUpdate();
-                return dataList.<TableData>map(td -> {
+                context.resolve(dataList.map(td -> {
                     StringCollection<Object> values2 = td.getValues();
                     values2.add(field, value);
                     td.setValues(values2);
                     return td;
-                });
-            } catch (CommunicationsException | CJCommunicationsException e2) {
-                try {
-                    sequelize.authenticate();
-                    return null;
-                } catch (SQLException e3) {
-                    throw new RuntimeException(e3);
-                }
-            } catch (SQLException e) { throw new RuntimeException(e); }
+                }));
+            } catch (SQLException e) {
+                context.reject(new RuntimeException(e));
+            }
         });
     }
 
-    /**
-     * {@inheritDoc}
-     * @return
-     */
     @Override
     public @NotNull Promise<@NotNull CollectionList<@NotNull TableData>> update(@NotNull UpsertOptions options) {
         Validate.isTrue(options.getValues() != null && options.getValues().size() != 0, "Values must be specified.");
-        return new Promise<CollectionList<TableData>>() {
-            @Override
-            public CollectionList<TableData> apply(Object o0) {
-                try {
-                    CollectionList<TableData> dataList = findAll(options).complete();
-                    String columns = options.getValues().keysList().map(s -> s + " = ?").join(", ");
-                    StringBuilder sb = new StringBuilder("update " + getName() + " set " + columns);
-                    @Nullable final Map<String, Object> where = options.where();
-                    if (where != null) {
-                        sb.append(" where ");
-                        sb.append(new CollectionList<>(where.keySet()).map(s -> s + " = ?").join(" and ")).append(" ");
+        return new Promise<>(context -> {
+            try {
+                CollectionList<TableData> dataList = findAll(options).complete();
+                String columns = options.getValues().keysList().map(s -> s + " = ?").join(", ");
+                StringBuilder sb = new StringBuilder("update " + getName() + " set " + columns);
+                @Nullable final Map<String, Object> where = options.where();
+                if (where != null) {
+                    sb.append(" where ");
+                    sb.append(new CollectionList<>(where.keySet()).map(s -> s + " = ?").join(" and ")).append(" ");
+                }
+                sb.append(";");
+                PreparedStatement statement = connection.prepareStatement(sb.toString());
+                AtomicInteger index = new AtomicInteger();
+                options.getValues().valuesList().foreach((o, i) -> {
+                    try {
+                        statement.setObject(index.incrementAndGet(), o);
+                    } catch (SQLException e) {
+                        e.printStackTrace();
                     }
-                    sb.append(";");
-                    PreparedStatement statement = connection.prepareStatement(sb.toString());
-                    AtomicInteger index = new AtomicInteger();
-                    options.getValues().valuesList().foreach((o, i) -> {
+                });
+                if (where != null) {
+                    where.values().forEach(o -> {
                         try {
                             statement.setObject(index.incrementAndGet(), o);
                         } catch (SQLException e) {
                             e.printStackTrace();
                         }
                     });
-                    if (where != null) {
-                        where.values().forEach(o -> {
-                            try {
-                                statement.setObject(index.incrementAndGet(), o);
-                            } catch (SQLException e) {
-                                e.printStackTrace();
-                            }
-                        });
-                    }
-                    statement.executeUpdate();
-                    assert dataList != null;
-                    return dataList.map(td -> {
-                        td.setValues(options.getValues());
-                        return td;
-                    });
-                } catch (CommunicationsException | CJCommunicationsException e2) {
-                    try {
-                        sequelize.authenticate();
-                    } catch (SQLException e3) {
-                        throw new RuntimeException(e3);
-                    }
-                    return update(options).complete();
-                } catch (SQLException e) { throw new RuntimeException(e); }
+                }
+                statement.executeUpdate();
+                assert dataList != null;
+                context.resolve(dataList.map(td -> {
+                    td.setValues(options.getValues());
+                    return td;
+                }));
+            } catch (SQLException e) {
+                context.reject(new RuntimeException(e));
             }
-        };
+        });
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    @SuppressWarnings("unchecked")
     public Promise<CollectionList<TableData>> upsert(UpsertOptions options) {
-        if (((CollectionList<TableData>) Objects.requireNonNull(await(findAll(options), null))).size() == 0) {
-            return async(o -> (CollectionList<TableData>) ICollectionList.of(insert(options).complete()));
-        } else {
-            return update(options);
-        }
+        return new Promise<>(context -> {
+            if (findAll(options).complete().size() == 0) {
+                context.resolve(ICollectionList.of(insert(options).complete()));
+            } else {
+                context.resolve(update(options).complete());
+            }
+        });
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Promise<TableData> insert(InsertOptions options) {
         Validate.isTrue(options != null && options.getValues() != null && options.getValues().size() != 0, "InsertOptions must not be null and has 1 key/value at least.");
-        return new Promise<TableData>() {
-            @Override
-            public TableData apply(Object o0) {
-                try {
-                    String columns = options.getValues().keysList().join(", ");
-                    String values = options.getValues().valuesList().map(s -> "?").join(", ");
-                    String sql = "insert into " + getName() + " (" + columns + ") values (" + values + ")" + ";";
-                    PreparedStatement statement = connection.prepareStatement(sql);
-                    options.getValues().valuesList().foreach((o, i) -> {
-                        try {
-                            statement.setObject(i+1, o);
-                        } catch (SQLException e) {
-                            e.printStackTrace();
-                        }
-                    });
-                    statement.executeUpdate();
-                    return new TableData(Table.this, connection, getDefinitions(), options.getValues(), sql);
-                } catch (CommunicationsException | CJCommunicationsException e2) {
+        return new Promise<>(context -> {
+            try {
+                String columns = options.getValues().keysList().join(", ");
+                String values = options.getValues().valuesList().map(s -> "?").join(", ");
+                String sql = "insert into " + getName() + " (" + columns + ") values (" + values + ")" + ";";
+                PreparedStatement statement = connection.prepareStatement(sql);
+                options.getValues().valuesList().foreach((o, i) -> {
                     try {
-                        sequelize.authenticate();
-                        return null;
-                    } catch (SQLException e3) {
-                        throw new RuntimeException("Could not reconnect to database", e3);
+                        statement.setObject(i+1, o);
+                    } catch (SQLException e) {
+                        e.printStackTrace();
                     }
-                } catch (SQLException e) { throw new RuntimeException(e); }
+                });
+                statement.executeUpdate();
+                context.resolve(new TableData(Table.this, connection, getDefinitions(), options.getValues(), sql));
+            } catch (SQLException e) {
+                context.reject(new RuntimeException(e));
             }
-        };
+        });
     }
 
     /**
@@ -283,85 +232,68 @@ public class Table implements ITable {
         //noinspection ConstantConditions
         if (options == null) throw new IllegalArgumentException("FindOptions must be provided. (If you meant to delete everything, use FindOptions#ALL.)");
         Validate.isTrue(options.where() != null && Objects.requireNonNull(options.where()).size() != 0, "FindOptions(with where clause) must be provided.");
-        return new Promise<CollectionList<TableData>>() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public CollectionList<TableData> apply(Object o) {
-                try {
-                    CollectionList<TableData> dataList = (CollectionList<TableData>) await(findAll(options), null);
-                    StringBuilder sb = new StringBuilder("delete from " + getName());
-                    if (options.where() != null) {
-                        sb.append(" where ");
-                        sb.append(new CollectionList<>(Objects.requireNonNull(options.where()).keySet()).map(s -> s + "=?").join(" and ")).append(" ");
-                    } else throw new IllegalArgumentException("Where clause must be provided.");
-                    if (options.limit() != null) sb.append(" limit ").append(options.limit()).append(" ");
-                    sb.append(";");
-                    PreparedStatement statement = connection.prepareStatement(sb.toString());
-                    AtomicReference<SQLException> exception = new AtomicReference<>();
-                    new CollectionList<>(Objects.requireNonNull(options.where()).values()).foreach((o2, i) -> {
-                        if (exception.get() != null) return;
-                        try {
-                            statement.setObject(1 + i, o2);
-                        } catch (SQLException t) {
-                            exception.set(t);
-                        }
-                    });
-                    if (exception.get() != null) throw exception.get();
-                    statement.executeUpdate();
-                    return dataList;
-                } catch (CommunicationsException | CJCommunicationsException e2) {
+        return new Promise<>(context -> {
+            try {
+                CollectionList<TableData> dataList = findAll(options).complete();
+                StringBuilder sb = new StringBuilder("delete from " + getName());
+                if (options.where() != null) {
+                    sb.append(" where ");
+                    sb.append(new CollectionList<>(Objects.requireNonNull(options.where()).keySet()).map(s -> s + "=?").join(" and ")).append(" ");
+                } else throw new IllegalArgumentException("Where clause must be provided.");
+                if (options.limit() != null) sb.append(" limit ").append(options.limit()).append(" ");
+                sb.append(";");
+                PreparedStatement statement = connection.prepareStatement(sb.toString());
+                AtomicReference<SQLException> exception = new AtomicReference<>();
+                new CollectionList<>(Objects.requireNonNull(options.where()).values()).foreach((o2, i) -> {
+                    if (exception.get() != null) return;
                     try {
-                        sequelize.authenticate();
-                        return null;
-                    } catch (SQLException e3) {
-                        throw new RuntimeException(e3);
+                        statement.setObject(1 + i, o2);
+                    } catch (SQLException t) {
+                        exception.set(t);
                     }
-                } catch (SQLException e) { throw new RuntimeException(e); }
+                });
+                if (exception.get() != null) throw exception.get();
+                statement.executeUpdate();
+                context.resolve(dataList);
+            } catch (SQLException e) {
+                context.reject(new RuntimeException(e));
             }
-        };
+        });
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Promise<Void> increment(@NotNull IncrementOptions options) {
         Validate.isTrue(options.getFieldsMap() != null && options.getFieldsMap().size() != 0, "IncrementOptions(with fieldsMap) must be provided.");
-        return async(o0 -> {
-            CollectionList<TableData> data = (CollectionList<TableData>) await(findAll(options), null);
-            if (data == null) throw new NullPointerException();
+        return new Promise<>(context -> {
+            CollectionList<TableData> data = findAll(options).complete();
+            if (data == null) context.resolve();
+            assert data != null;
             data.forEach(t -> options.getFieldsMap().forEach((k, i) -> t.update(k, t.getInteger(k) + i, options).complete()));
-            return null;
+            context.resolve(null);
         });
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Promise<Void> decrement(@NotNull IncrementOptions options) {
         Validate.isTrue(options.getFieldsMap() != null && options.getFieldsMap().size() != 0, "IncrementOptions(with fieldsMap) must be provided.");
-        return async(o1 -> {
-            CollectionList<TableData> data = (CollectionList<TableData>) await(findAll(options), null);
-            if (data == null) return null;
-            data.forEach(t -> options.getFieldsMap().forEach((k, i) -> awaitT(t.update(k, t.get(k, Integer.class) - i, options))));
-            return null;
+        return new Promise<>(context -> {
+            CollectionList<TableData> data = findAll(options).complete();
+            if (data == null) context.resolve(null);
+            assert data != null;
+            data.forEach(t -> options.getFieldsMap().forEach((k, i) -> t.update(k, t.get(k, Integer.class) - i, options).complete()));
+            context.resolve(null);
         });
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Promise<Void> drop() {
-        return async(o1 -> {
+        return new Promise<>(context -> {
             try {
                 connection.createStatement().executeUpdate("drop table if exists " + getName());
-                return null;
-            } catch (CommunicationsException | CJCommunicationsException e2) {
-                try {
-                    sequelize.authenticate();
-                    return null;
-                } catch (SQLException e3) {
-                    throw new RuntimeException(e3);
-                }
-            } catch (SQLException e) { throw new RuntimeException(e); }
+                context.resolve(null);
+            } catch (SQLException e) {
+                context.reject(new RuntimeException(e));
+            }
         });
     }
 

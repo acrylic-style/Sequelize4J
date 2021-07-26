@@ -3,7 +3,7 @@ package xyz.acrylicstyle.sql;
 import org.jetbrains.annotations.NotNull;
 import util.CollectionList;
 import util.StringCollection;
-import util.promise.Promise;
+import util.promise.rewrite.Promise;
 import xyz.acrylicstyle.sql.exceptions.IncompatibleTypeException;
 import xyz.acrylicstyle.sql.options.FindOptions;
 import xyz.acrylicstyle.sql.options.IncrementOptions;

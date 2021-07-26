@@ -259,9 +259,28 @@ public class Sequelize implements ISQLUtils {
         Validate.isTrue(table.matches(TABLE_NAME_REGEX.pattern()), "Table " + table + " must match following pattern: " + TABLE_NAME_REGEX.pattern());
         if (definitions.get(table) != null) throw new IllegalStateException("Table " + table + " already exists");
         StringCollection<TableDefinition> definitions = new StringCollection<>();
+        AtomicReference<TableDefinition> primaryKey = new AtomicReference<>();
         for (TableDefinition def : definitionArr) {
             Validate.isTrue(def.getName().matches(FIELD_NAME_REGEX.pattern()), "Field " + def.getName() + " must match following pattern: " + FIELD_NAME_REGEX.pattern());
-            definitions.add(def.getName(), def);
+            if (def.isPrimaryKey()) primaryKey.set(def);
+            if (!(def.getType() instanceof ArrayDataType)) {
+                definitions.add(def.getName(), def);
+            }
+        }
+        for (TableDefinition def : definitionArr) {
+            if (def.getType() instanceof ArrayDataType) {
+                if (primaryKey.get() == null) throw new IllegalArgumentException("Primary key is required for ArrayDataType");
+                if (primaryKey.get() == def) throw new IllegalArgumentException("Primary key cannot be equals with ArrayDataType");
+                define(def.getName() + "_array", new TableDefinition[] {
+                        primaryKey.get().copy("k"),
+                        new TableDefinition.Builder("v", ((ArrayDataType<?>) def.getType()).arrayType)
+                                .setDefaultValue(def.getDefaultValue())
+                                .setAllowNull(def.allowNull())
+                                .setPrimaryKey(def.isPrimaryKey())
+                                .setAutoIncrement(def.isAutoIncrement())
+                                .build(),
+                });
+            }
         }
         this.definitions.add(table, definitionArr);
         return new Table(table, definitions, connection, this);

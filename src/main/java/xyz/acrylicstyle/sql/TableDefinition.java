@@ -1,6 +1,29 @@
 package xyz.acrylicstyle.sql;
 
 public abstract class TableDefinition {
+    public final TableDefinition copy(String newName) {
+        TableDefinition t = this;
+        return new TableDefinition() {
+            @Override
+            public String getName() { return newName; }
+
+            @Override
+            public DataType<?> getType() { return t.getType(); }
+
+            @Override
+            public boolean isAutoIncrement() { return t.isAutoIncrement(); }
+
+            @Override
+            public boolean allowNull() { return t.allowNull(); }
+
+            @Override
+            public boolean isPrimaryKey() { return t.isPrimaryKey(); }
+
+            @Override
+            public Object getDefaultValue() { return t.getDefaultValue(); }
+        };
+    }
+
     /**
      * @return Name of field. Required.
      */

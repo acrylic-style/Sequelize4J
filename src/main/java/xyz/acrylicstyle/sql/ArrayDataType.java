@@ -2,11 +2,15 @@ package xyz.acrylicstyle.sql;
 
 import org.jetbrains.annotations.NotNull;
 import util.Collection;
+import util.CollectionList;
 
 /**
- * WIP, it does not work at all.
+ * @deprecated Draft API, may not work as expected.
  */
-class ArrayDataType<T> extends DataType<ArrayDataType<T>> {
+@Deprecated
+class ArrayDataType<T> extends DataType<CollectionList<T>> {
+    private Class<CollectionList<T>> clazz;
+
     @NotNull
     protected final DataType<T> arrayType;
 
@@ -15,7 +19,7 @@ class ArrayDataType<T> extends DataType<ArrayDataType<T>> {
 
     @SuppressWarnings("unchecked")
     @NotNull
-    /*public*/ static <T> ArrayDataType<T> arrayTypeOf(DataType<T> type) { // not implemented
+    public static <T> ArrayDataType<T> arrayTypeOf(DataType<T> type) {
         if (cache.containsKey(type)) return (ArrayDataType<T>) cache.get(type);
         ArrayDataType<T> array = new ArrayDataType<>(type);
         cache.add(type, array);
@@ -27,8 +31,18 @@ class ArrayDataType<T> extends DataType<ArrayDataType<T>> {
         this.arrayType = arrayType;
     }
 
+    public Class<T> toComponentClass() { return arrayType.toClass(); }
+
+    @SuppressWarnings({ "unchecked", "InstantiatingObjectToGetClassObject" })
+    @Override
+    public @NotNull Class<CollectionList<T>> toClass() {
+        if (this.clazz != null) return this.clazz;
+        this.clazz = (Class<CollectionList<T>>) new CollectionList<>().getClass(); // cache class
+        return this.clazz;
+    }
+
     @NotNull
-    public DataType<T> getArrayType() { return arrayType; }
+    public DataType<T> getComponentType() { return arrayType; }
 
     @Override
     public String toString() {
