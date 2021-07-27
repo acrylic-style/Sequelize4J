@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public interface FindOptions extends SortOptions {
-    FindOptions.Builder ALL_BUILDER = new FindOptions.Builder().addWhere("true", true);
+    FindOptions.Builder ALL_BUILDER = new FindOptions.Builder().addWhere("true", "true");
     FindOptions ALL = ALL_BUILDER.build();
 
     @Nullable
