@@ -57,8 +57,12 @@ public class Table implements ITable {
                 if (options != null) {
                     if (options.where() != null && Objects.requireNonNull(options.where()).size() != 0) {
                         sb.append(" WHERE ");
-                        sb.append(new CollectionList<>(Objects.requireNonNull(options.where()).keySet()).map(s -> "`" + s + "`=?").join(" AND ")).append(" ");
-                        values.addAll(Objects.requireNonNull(options.where()).values());
+                        if ("true".equals(Objects.requireNonNull(options.where()).get("true"))) {
+                            sb.append("true");
+                        } else {
+                            sb.append(new CollectionList<>(Objects.requireNonNull(options.where()).keySet()).map(s -> "`" + s + "`=?").join(" AND ")).append(" ");
+                            values.addAll(Objects.requireNonNull(options.where()).values());
+                        }
                     }
                     if (options.orderBy() != null && !Objects.equals(options.orderBy(), "")) {
                         sb.append(" ORDER BY `").append(options.orderBy()).append("` ").append(options.order().name());
@@ -115,11 +119,16 @@ public class Table implements ITable {
                 CollectionList<Object> values = new CollectionList<>();
                 if (options != null && options.where() != null) {
                     sb.append(" WHERE ");
-                    ICollection.asCollection(options.where()).forEach((k, v, i, a) -> {
-                        values.add(v);
-                        sb.append("`").append(k).append("`=?");
-                        if (i != 0) sb.append(" AND ");
-                    });
+                    sb.append(" WHERE ");
+                    if ("true".equals(Objects.requireNonNull(options.where()).get("true"))) {
+                        sb.append("true");
+                    } else {
+                        ICollection.asCollection(options.where()).forEach((k, v, i, a) -> {
+                            values.add(v);
+                            sb.append("`").append(k).append("`=?");
+                            if (i != 0) sb.append(" AND ");
+                        });
+                    }
                 }
                 sb.append(";");
                 PreparedStatement statement = connection.prepareStatement(sb.toString());
@@ -238,15 +247,21 @@ public class Table implements ITable {
             try {
                 CollectionList<TableData> dataList = findAll(options).complete();
                 StringBuilder sb = new StringBuilder("DELETE FROM `" + getName() + "`");
+                CollectionList<Object> values = new CollectionList<>();
                 if (options.where() != null) {
                     sb.append(" WHERE ");
-                    sb.append(new CollectionList<>(Objects.requireNonNull(options.where()).keySet()).map(s -> "`" + s + "`=?").join(" AND ")).append(" ");
+                    if ("true".equals(Objects.requireNonNull(options.where()).get("true"))) {
+                        sb.append("true");
+                    } else {
+                        values.addAll(Objects.requireNonNull(options.where()).values());
+                        sb.append(new CollectionList<>(Objects.requireNonNull(options.where()).keySet()).map(s -> "`" + s + "`=?").join(" AND ")).append(" ");
+                    }
                 } else throw new IllegalArgumentException("Where clause must be provided.");
                 if (options.limit() != null) sb.append(" LIMIT ").append(options.limit()).append(" ");
                 sb.append(";");
                 PreparedStatement statement = connection.prepareStatement(sb.toString());
                 AtomicReference<SQLException> exception = new AtomicReference<>();
-                new CollectionList<>(Objects.requireNonNull(options.where()).values()).foreach((o2, i) -> {
+                values.foreach((o2, i) -> {
                     if (exception.get() != null) return;
                     try {
                         statement.setObject(1 + i, o2);
