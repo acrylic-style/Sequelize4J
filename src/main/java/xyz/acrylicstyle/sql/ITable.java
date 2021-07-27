@@ -1,6 +1,7 @@
 package xyz.acrylicstyle.sql;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import util.CollectionList;
 import util.promise.rewrite.Promise;
 import xyz.acrylicstyle.sql.options.FindOptions;
@@ -16,14 +17,16 @@ public interface ITable extends SQLConnectionHolder {
      * @param options FindOptions. Required.
      * @return Found table datas. Can be converted into array using {@link CollectionList#toArray(Object[])} or {@link CollectionList#toArray()}
      */
-    Promise<CollectionList<TableData>> findAll(FindOptions options);
+    @NotNull
+    Promise<@NotNull CollectionList<@NotNull TableData>> findAll(FindOptions options);
 
     /**
      * Finds a data from table. If multiple data was found, the first data will be returned.
      * @param options FindOptions. Required.
      * @return Found table data.
      */
-    Promise<TableData> findOne(FindOptions options);
+    @NotNull
+    Promise<@Nullable TableData> findOne(FindOptions options);
 
     /**
      * Updates a data.
@@ -32,7 +35,8 @@ public interface ITable extends SQLConnectionHolder {
      * @param options Find Options. Required.
      * @return Updated table data.
      */
-    Promise<CollectionList<TableData>> update(String field, Object value, FindOptions options);
+    @NotNull
+    Promise<@NotNull CollectionList<@NotNull TableData>> update(String field, Object value, FindOptions options);
 
     /**
      * Updates multiple data.
@@ -46,19 +50,22 @@ public interface ITable extends SQLConnectionHolder {
      * @param options Upsert Options. Required.
      * @return Created or Updated Table data list.
      */
-    Promise<CollectionList<TableData>> upsert(UpsertOptions options);
+    @NotNull
+    Promise<@NotNull CollectionList<@NotNull TableData>> upsert(UpsertOptions options);
 
     /**
      * Insert a data into table.
      * @param options Insert options. Required.
      * @return Created table data.
      */
-    Promise<TableData> insert(InsertOptions options);
+    @NotNull
+    Promise<@NotNull TableData> insert(InsertOptions options);
 
     /**
      * Drops(Delete) entire table.<br>
      * <b>This action cannot be undone!</b>
      */
+    @NotNull
     Promise<Void> drop();
 
     /**
@@ -68,15 +75,17 @@ public interface ITable extends SQLConnectionHolder {
      * @return Deleted rows
      */
     @NotNull
-    Promise<CollectionList<TableData>> delete(FindOptions options);
+    Promise<@NotNull CollectionList<@NotNull TableData>> delete(FindOptions options);
 
     /**
      * Increase a value by specified value.
      */
+    @NotNull
     Promise<Void> increment(IncrementOptions options);
 
     /**
      * Decrease a value by specified value.
      */
+    @NotNull
     Promise<Void> decrement(IncrementOptions options);
 }

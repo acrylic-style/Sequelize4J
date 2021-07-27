@@ -1,6 +1,7 @@
 package xyz.acrylicstyle.sql;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import util.CollectionList;
 import util.StringCollection;
 import util.promise.rewrite.Promise;
@@ -86,7 +87,7 @@ public class TableData implements ITable {
      * {@inheritDoc}
      */
     @Override
-    public Promise<CollectionList<TableData>> findAll(FindOptions options) {
+    public @NotNull Promise<@NotNull CollectionList<@NotNull TableData>> findAll(FindOptions options) {
         return table.findAll(options);
     }
 
@@ -94,7 +95,7 @@ public class TableData implements ITable {
      * {@inheritDoc}
      */
     @Override
-    public Promise<TableData> findOne(FindOptions options) {
+    public @NotNull Promise<@Nullable TableData> findOne(FindOptions options) {
         return table.findOne(options);
     }
 
@@ -102,7 +103,7 @@ public class TableData implements ITable {
      * {@inheritDoc}
      */
     @Override
-    public Promise<CollectionList<TableData>> update(String field, Object value, FindOptions options) {
+    public @NotNull Promise<@NotNull CollectionList<@NotNull TableData>> update(String field, Object value, FindOptions options) {
         return table.update(field, value, options);
     }
 
@@ -111,7 +112,7 @@ public class TableData implements ITable {
      * @return
      */
     @Override
-    public Promise<CollectionList<TableData>> update(@NotNull UpsertOptions options) {
+    public Promise<@NotNull CollectionList<@NotNull TableData>> update(@NotNull UpsertOptions options) {
         return table.update(options);
     }
 
@@ -120,7 +121,7 @@ public class TableData implements ITable {
      * @return
      */
     @Override
-    public Promise<CollectionList<TableData>> upsert(UpsertOptions options) {
+    public @NotNull Promise<@NotNull CollectionList<@NotNull TableData>> upsert(UpsertOptions options) {
         return table.update(options);
     }
 
@@ -128,7 +129,7 @@ public class TableData implements ITable {
      * {@inheritDoc}
      */
     @Override
-    public Promise<TableData> insert(InsertOptions options) {
+    public @NotNull Promise<@NotNull TableData> insert(InsertOptions options) {
         return table.insert(options);
     }
 
@@ -136,7 +137,7 @@ public class TableData implements ITable {
      * {@inheritDoc}
      */
     @Override
-    public Promise<Void> drop() {
+    public @NotNull Promise<Void> drop() {
         return table.drop();
     }
 
@@ -145,7 +146,7 @@ public class TableData implements ITable {
      */
     @NotNull
     @Override
-    public Promise<CollectionList<TableData>> delete(@NotNull FindOptions options) {
+    public Promise<@NotNull CollectionList<@NotNull TableData>> delete(@NotNull FindOptions options) {
         return table.delete(options);
     }
 
@@ -153,7 +154,7 @@ public class TableData implements ITable {
      * {@inheritDoc}
      */
     @Override
-    public Promise<Void> increment(@NotNull IncrementOptions options) {
+    public @NotNull Promise<Void> increment(@NotNull IncrementOptions options) {
         return table.increment(options);
     }
 
@@ -161,7 +162,7 @@ public class TableData implements ITable {
      * {@inheritDoc}
      */
     @Override
-    public Promise<Void> decrement(@NotNull IncrementOptions options) {
+    public @NotNull Promise<Void> decrement(@NotNull IncrementOptions options) {
         return table.decrement(options);
     }
 

@@ -49,7 +49,7 @@ public class Table implements ITable {
     public Connection getConnection() { return connection; }
 
     @Override
-    public Promise<CollectionList<TableData>> findAll(@Nullable FindOptions options) {
+    public @NotNull Promise<@NotNull CollectionList<@NotNull TableData>> findAll(@Nullable FindOptions options) {
         return new Promise<>(context -> {
             try {
                 StringBuilder sb = new StringBuilder("select * from " + getName());
@@ -97,7 +97,7 @@ public class Table implements ITable {
     }
 
     @Override
-    public Promise<TableData> findOne(FindOptions options) {
+    public @NotNull Promise<@Nullable TableData> findOne(FindOptions options) {
         return new Promise<>(context -> {
             findAll(options).then(list -> list.size() == 0 ? null : list.first());
             CollectionList<TableData> list = findAll(options).complete();
@@ -106,7 +106,7 @@ public class Table implements ITable {
     }
 
     @Override
-    public Promise<CollectionList<TableData>> update(String field, Object value, FindOptions options) {
+    public @NotNull Promise<@NotNull CollectionList<@NotNull TableData>> update(String field, Object value, FindOptions options) {
         Validate.isTrue(field.matches(Sequelize.FIELD_NAME_REGEX.pattern()), "Field " + field + " must match following pattern: " + Sequelize.FIELD_NAME_REGEX.pattern());
         return new Promise<>(context -> {
             try {
@@ -191,7 +191,7 @@ public class Table implements ITable {
     }
 
     @Override
-    public Promise<CollectionList<TableData>> upsert(UpsertOptions options) {
+    public @NotNull Promise<@NotNull CollectionList<@NotNull TableData>> upsert(UpsertOptions options) {
         return new Promise<>(context -> {
             if (findAll(options).complete().size() == 0) {
                 context.resolve(ICollectionList.of(insert(options).complete()));
@@ -202,7 +202,7 @@ public class Table implements ITable {
     }
 
     @Override
-    public Promise<TableData> insert(InsertOptions options) {
+    public @NotNull Promise<@NotNull TableData> insert(InsertOptions options) {
         Validate.isTrue(options != null && options.getValues() != null && options.getValues().size() != 0, "InsertOptions must not be null and has 1 key/value at least.");
         return new Promise<>(context -> {
             try {
@@ -231,7 +231,7 @@ public class Table implements ITable {
      * If you (really) want to delete everything, use {@link FindOptions#ALL}.
      */
     @Override
-    public @NotNull Promise<CollectionList<TableData>> delete(@NotNull FindOptions options) {
+    public @NotNull Promise<@NotNull CollectionList<@NotNull TableData>> delete(@NotNull FindOptions options) {
         //noinspection ConstantConditions
         if (options == null) throw new IllegalArgumentException("FindOptions must be provided. (If you meant to delete everything, use FindOptions#ALL.)");
         Validate.isTrue(options.where() != null && Objects.requireNonNull(options.where()).size() != 0, "FindOptions(with where clause) must be provided.");
@@ -266,31 +266,27 @@ public class Table implements ITable {
     }
 
     @Override
-    public Promise<Void> increment(@NotNull IncrementOptions options) {
+    public @NotNull Promise<Void> increment(@NotNull IncrementOptions options) {
         Validate.isTrue(options.getFieldsMap() != null && options.getFieldsMap().size() != 0, "IncrementOptions(with fieldsMap) must be provided.");
         return new Promise<>(context -> {
             CollectionList<TableData> data = findAll(options).complete();
-            if (data == null) context.resolve();
-            assert data != null;
             data.forEach(t -> options.getFieldsMap().forEach((k, i) -> t.update(k, t.getInteger(k) + i, options).complete()));
             context.resolve(null);
         });
     }
 
     @Override
-    public Promise<Void> decrement(@NotNull IncrementOptions options) {
+    public @NotNull Promise<Void> decrement(@NotNull IncrementOptions options) {
         Validate.isTrue(options.getFieldsMap() != null && options.getFieldsMap().size() != 0, "IncrementOptions(with fieldsMap) must be provided.");
         return new Promise<>(context -> {
             CollectionList<TableData> data = findAll(options).complete();
-            if (data == null) context.resolve(null);
-            assert data != null;
             data.forEach(t -> options.getFieldsMap().forEach((k, i) -> t.update(k, t.get(k, Integer.class) - i, options).complete()));
             context.resolve(null);
         });
     }
 
     @Override
-    public Promise<Void> drop() {
+    public @NotNull Promise<Void> drop() {
         return new Promise<>(context -> {
             try {
                 connection.createStatement().executeUpdate("drop table if exists " + getName());
