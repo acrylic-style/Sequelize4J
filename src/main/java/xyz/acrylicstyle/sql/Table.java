@@ -52,18 +52,18 @@ public class Table implements ITable {
     public @NotNull Promise<@NotNull CollectionList<@NotNull TableData>> findAll(@Nullable FindOptions options) {
         return new Promise<>(context -> {
             try {
-                StringBuilder sb = new StringBuilder("select * from " + getName());
+                StringBuilder sb = new StringBuilder("SELECT * FROM `" + getName() + "`");
                 CollectionList<Object> values = new CollectionList<>();
                 if (options != null) {
                     if (options.where() != null && Objects.requireNonNull(options.where()).size() != 0) {
-                        sb.append(" where ");
-                        sb.append(new CollectionList<>(Objects.requireNonNull(options.where()).keySet()).map(s -> s + "=?").join(" and ")).append(" ");
+                        sb.append(" WHERE ");
+                        sb.append(new CollectionList<>(Objects.requireNonNull(options.where()).keySet()).map(s -> "`" + s + "`=?").join(" AND ")).append(" ");
                         values.addAll(Objects.requireNonNull(options.where()).values());
                     }
                     if (options.orderBy() != null && !Objects.equals(options.orderBy(), "")) {
-                        sb.append(" order by ").append(options.orderBy()).append(" ").append(options.order().name());
+                        sb.append(" ORDER BY `").append(options.orderBy()).append("` ").append(options.order().name());
                     }
-                    if (options.limit() != null) sb.append(" limit ").append(options.limit());
+                    if (options.limit() != null) sb.append(" LIMIT ").append(options.limit());
                 }
                 sb.append(";");
                 PreparedStatement statement = connection.prepareStatement(sb.toString());
@@ -111,14 +111,14 @@ public class Table implements ITable {
         return new Promise<>(context -> {
             try {
                 CollectionList<TableData> dataList = findAll(options).complete();
-                StringBuilder sb = new StringBuilder("update " + getName() + " set " + field + "=?");
+                StringBuilder sb = new StringBuilder("UPDATE `" + getName() + "` SET `" + field + "`=?");
                 CollectionList<Object> values = new CollectionList<>();
                 if (options != null && options.where() != null) {
-                    sb.append(" where ");
+                    sb.append(" WHERE ");
                     ICollection.asCollection(options.where()).forEach((k, v, i, a) -> {
                         values.add(v);
-                        sb.append(k).append("=?");
-                        if (i != 0) sb.append(" and ");
+                        sb.append("`").append(k).append("`=?");
+                        if (i != 0) sb.append(" AND ");
                     });
                 }
                 sb.append(";");
@@ -151,12 +151,12 @@ public class Table implements ITable {
         return new Promise<>(context -> {
             try {
                 CollectionList<TableData> dataList = findAll(options).complete();
-                String columns = options.getValues().keysList().map(s -> s + " = ?").join(", ");
-                StringBuilder sb = new StringBuilder("update " + getName() + " set " + columns);
+                String columns = options.getValues().keysList().map(s -> "`" + s + "` = ?").join(", ");
+                StringBuilder sb = new StringBuilder("UPDATE `" + getName() + "` SET " + columns);
                 @Nullable final Map<String, Object> where = options.where();
                 if (where != null) {
-                    sb.append(" where ");
-                    sb.append(new CollectionList<>(where.keySet()).map(s -> s + " = ?").join(" and ")).append(" ");
+                    sb.append(" WHERE ");
+                    sb.append(new CollectionList<>(where.keySet()).map(s -> "`" + s + "` = ?").join(" AND ")).append(" ");
                 }
                 sb.append(";");
                 PreparedStatement statement = connection.prepareStatement(sb.toString());
@@ -179,7 +179,6 @@ public class Table implements ITable {
                 }
                 statement.executeUpdate();
                 statement.close();
-                assert dataList != null;
                 context.resolve(dataList.map(td -> {
                     td.setValues(options.getValues());
                     return td;
@@ -206,9 +205,9 @@ public class Table implements ITable {
         Validate.isTrue(options != null && options.getValues() != null && options.getValues().size() != 0, "InsertOptions must not be null and has 1 key/value at least.");
         return new Promise<>(context -> {
             try {
-                String columns = options.getValues().keysList().join(", ");
+                String columns = options.getValues().keysList().map(s -> "`" + s + "`").join(", ");
                 String values = options.getValues().valuesList().map(s -> "?").join(", ");
-                String sql = "insert into " + getName() + " (" + columns + ") values (" + values + ")" + ";";
+                String sql = "INSERT INTO `" + getName() + "` (" + columns + ") values (" + values + ")" + ";";
                 PreparedStatement statement = connection.prepareStatement(sql);
                 options.getValues().valuesList().foreach((o, i) -> {
                     try {
@@ -238,12 +237,12 @@ public class Table implements ITable {
         return new Promise<>(context -> {
             try {
                 CollectionList<TableData> dataList = findAll(options).complete();
-                StringBuilder sb = new StringBuilder("delete from " + getName());
+                StringBuilder sb = new StringBuilder("DELETE FROM `" + getName() + "`");
                 if (options.where() != null) {
-                    sb.append(" where ");
-                    sb.append(new CollectionList<>(Objects.requireNonNull(options.where()).keySet()).map(s -> s + "=?").join(" and ")).append(" ");
+                    sb.append(" WHERE ");
+                    sb.append(new CollectionList<>(Objects.requireNonNull(options.where()).keySet()).map(s -> "`" + s + "`=?").join(" AND ")).append(" ");
                 } else throw new IllegalArgumentException("Where clause must be provided.");
-                if (options.limit() != null) sb.append(" limit ").append(options.limit()).append(" ");
+                if (options.limit() != null) sb.append(" LIMIT ").append(options.limit()).append(" ");
                 sb.append(";");
                 PreparedStatement statement = connection.prepareStatement(sb.toString());
                 AtomicReference<SQLException> exception = new AtomicReference<>();
@@ -289,7 +288,7 @@ public class Table implements ITable {
     public @NotNull Promise<Void> drop() {
         return new Promise<>(context -> {
             try {
-                connection.createStatement().executeUpdate("drop table if exists " + getName());
+                connection.createStatement().executeUpdate("DROP TABLE IF EXISTS `" + getName() + "`");
                 context.resolve(null);
             } catch (SQLException e) {
                 context.reject(new RuntimeException(e));
