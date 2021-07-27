@@ -240,10 +240,10 @@ public class Sequelize implements ISQLUtils {
                 if (primaryKeys.size() > 1) throw new IllegalArgumentException("Table " + table + " cannot have primary key more than 1");
                 TableDefinition primaryKey = primaryKeys.size() == 0 ? null : primaryKeys.first();
                 StringBuilder sb = new StringBuilder();
-                sb.append("create table ").append(force ? "" : "if not exists").append(" ").append(table).append(" (");
+                sb.append("create table ").append(force ? "" : "if not exists").append(" `").append(table).append("` (");
                 CollectionList<Object> values = new CollectionList<>();
                 list.foreach((def, index) -> {
-                    sb.append(def.getName())
+                    sb.append('`').append(def.getName()).append('`')
                             .append(" ")
                             .append(def.getType().getType())
                             .append(def.allowNull() ? " " : " not null ");
@@ -255,7 +255,7 @@ public class Sequelize implements ISQLUtils {
                     sb.append((index + 1) == list.size() && primaryKey == null ? "" : ",");
                 });
                 // set primary key if any
-                if (primaryKey != null) sb.append("primary key (").append(primaryKey.getName()).append(")");
+                if (primaryKey != null) sb.append("primary key (`").append(primaryKey.getName()).append("`)");
                 sb.append(");");
                 PreparedStatement statement = connection.prepareStatement(sb.toString());
                 values.foreach((o, index) -> {
