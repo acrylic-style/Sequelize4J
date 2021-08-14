@@ -2,11 +2,13 @@ package xyz.acrylicstyle.sql;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import util.Collection;
 import util.CollectionList;
 import util.CollectionSet;
 import util.ICollection;
 import util.ICollectionList;
 import util.StringCollection;
+import util.TypedEventEmitter;
 import util.promise.rewrite.Promise;
 import xyz.acrylicstyle.sql.options.FindOptions;
 import xyz.acrylicstyle.sql.options.IncrementOptions;
@@ -18,6 +20,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -29,6 +33,7 @@ public class Table implements ITable {
     private final StringCollection<TableDefinition> tableData;
     private final Connection connection;
     private final Sequelize sequelize;
+    private final TypedEventEmitter<Events> eventEmitter = new TypedEventEmitter<>();
 
     Table(String name, StringCollection<TableDefinition> tableData, Connection connection, Sequelize sequelize) {
         this.name = name;
@@ -37,16 +42,26 @@ public class Table implements ITable {
         this.sequelize = sequelize;
     }
 
+    @NotNull
+    public TypedEventEmitter<Events> getEventEmitter() {
+        return eventEmitter;
+    }
+
+    @NotNull
     public Sequelize getSequelize() {
         return sequelize;
     }
 
+    @NotNull
     public TableDefinition getDefinition(String field) { return tableData.get(field); }
 
+    @NotNull
     public StringCollection<TableDefinition> getDefinitions() { return tableData; }
 
+    @NotNull
     public String getName() { return name; }
 
+    @NotNull
     public Connection getConnection() { return connection; }
 
     @Override
@@ -72,6 +87,7 @@ public class Table implements ITable {
                     if (options.limit() != null) sb.append(" LIMIT ").append(options.limit());
                 }
                 sb.append(";");
+                eventEmitter.emit(Events.EXECUTE, sb.toString());
                 PreparedStatement statement = connection.prepareStatement(sb.toString());
                 values.foreach((o, i) -> {
                     try {
@@ -132,6 +148,7 @@ public class Table implements ITable {
                     }
                 }
                 sb.append(";");
+                eventEmitter.emit(Events.EXECUTE, sb.toString());
                 PreparedStatement statement = connection.prepareStatement(sb.toString());
                 statement.setObject(1, value);
                 values.foreach((o, i) -> {
@@ -161,17 +178,23 @@ public class Table implements ITable {
         return new Promise<>(context -> {
             try {
                 CollectionList<TableData> dataList = findAll(options).complete();
-                String columns = new CollectionSet<>(options.getValues().keySet()).map(s -> "`" + s + "` = ?").join(", ");
-                StringBuilder sb = new StringBuilder("UPDATE `" + getName() + "` SET " + columns);
+                StringBuilder sb = new StringBuilder("UPDATE `" + getName() + "` SET ");
+                List<Object> objects = new ArrayList<>();
+                new Collection<>(options.getValues()).forEach((key, value, i, a) -> {
+                    if (i > 0) sb.append(", ");
+                    sb.append("`").append(key).append("` = ?");
+                    objects.add(value);
+                });
                 @Nullable final Map<String, Map.Entry<Ops, Object>> where = options.where();
                 if (where != null) {
                     sb.append(" WHERE ");
                     sb.append(new CollectionList<>(where.keySet()).map(s -> "`" + s + "` " + where.get(s).getKey().op + " ?").join(" AND ")).append(" ");
                 }
                 sb.append(";");
+                eventEmitter.emit(Events.EXECUTE, sb.toString());
                 PreparedStatement statement = connection.prepareStatement(sb.toString());
                 AtomicInteger index = new AtomicInteger();
-                new CollectionList<>(options.getValues().values()).foreach((o, i) -> {
+                objects.forEach(o -> {
                     try {
                         statement.setObject(index.incrementAndGet(), o);
                     } catch (SQLException e) {
@@ -219,6 +242,7 @@ public class Table implements ITable {
                 CollectionList<?> vals = new CollectionList<>(options.getValues().values());
                 String values = vals.map(s -> "?").join(", ");
                 String sql = "INSERT INTO `" + getName() + "` (" + columns + ") values (" + values + ")" + ";";
+                eventEmitter.emit(Events.EXECUTE, sql);
                 PreparedStatement statement = connection.prepareStatement(sql);
                 vals.foreach((o, i) -> {
                     try {
@@ -262,6 +286,7 @@ public class Table implements ITable {
                 } else throw new IllegalArgumentException("Where clause must be provided.");
                 if (options.limit() != null) sb.append(" LIMIT ").append(options.limit()).append(" ");
                 sb.append(";");
+                eventEmitter.emit(Events.EXECUTE, sb.toString());
                 PreparedStatement statement = connection.prepareStatement(sb.toString());
                 AtomicReference<SQLException> exception = new AtomicReference<>();
                 values.foreach((o2, i) -> {
@@ -306,7 +331,9 @@ public class Table implements ITable {
     public @NotNull Promise<Void> drop() {
         return new Promise<>(context -> {
             try {
-                connection.createStatement().executeUpdate("DROP TABLE IF EXISTS `" + getName() + "`");
+                String sql = "DROP TABLE IF EXISTS `" + getName() + "`";
+                eventEmitter.emit(Events.EXECUTE, sql);
+                connection.createStatement().executeUpdate(sql);
                 context.resolve(null);
             } catch (SQLException e) {
                 context.reject(new RuntimeException(e));
@@ -317,5 +344,9 @@ public class Table implements ITable {
     @Override
     public String toString() {
         return "Table{name='" + getName() + "',fields=" + tableData.size() + ",connection='" + connection.toString() + "'}";
+    }
+
+    public enum Events {
+        EXECUTE,
     }
 }
