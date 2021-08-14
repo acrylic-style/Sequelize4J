@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public class Table implements ITable {
     private final String name;
@@ -58,11 +59,11 @@ public class Table implements ITable {
                     Map<String, Map.Entry<Ops, Object>> where = options.where();
                     if (where != null && where.size() != 0) {
                         sb.append(" WHERE ");
-                        if ("true".equals(where.get("true").getValue())) {
+                        if (options == FindOptions.ALL) {
                             sb.append("true");
                         } else {
                             sb.append(new CollectionList<>(where.keySet()).map(s -> "`" + s + "` " + where.get(s).getKey().op + " ?").join(" AND ")).append(" ");
-                            values.addAll(where.values());
+                            values.addAll(where.values().stream().map(Map.Entry::getValue).collect(Collectors.toList()));
                         }
                     }
                     if (options.orderBy() != null && !Objects.equals(options.orderBy(), "")) {
@@ -120,12 +121,12 @@ public class Table implements ITable {
                 CollectionList<Object> values = new CollectionList<>();
                 if (options != null && options.where() != null) {
                     sb.append(" WHERE ");
-                    if ("test".equals(Objects.requireNonNull(options.where()).get("true").getValue())) {
+                    if (options == FindOptions.ALL) {
                         sb.append("true");
                     } else {
                         ICollection.asCollection(options.where()).forEach((k, v, i, a) -> {
-                            values.add(v);
-                            sb.append("`").append(k).append("`=?");
+                            values.add(v.getValue());
+                            sb.append("`").append(k).append("`").append(v.getKey().op).append("?");
                             if (i != 0) sb.append(" AND ");
                         });
                     }
@@ -180,7 +181,7 @@ public class Table implements ITable {
                 if (where != null) {
                     where.values().forEach(o -> {
                         try {
-                            statement.setObject(index.incrementAndGet(), o);
+                            statement.setObject(index.incrementAndGet(), o.getValue());
                         } catch (SQLException e) {
                             e.printStackTrace();
                         }
@@ -249,13 +250,14 @@ public class Table implements ITable {
                 CollectionList<TableData> dataList = findAll(options).complete();
                 StringBuilder sb = new StringBuilder("DELETE FROM `" + getName() + "`");
                 CollectionList<Object> values = new CollectionList<>();
-                if (options.where() != null) {
+                Map<String, Map.Entry<Ops, Object>> where = options.where();
+                if (where != null) {
                     sb.append(" WHERE ");
-                    if ("true".equals(Objects.requireNonNull(options.where()).get("true"))) {
+                    if (options == FindOptions.ALL) {
                         sb.append("true");
                     } else {
-                        values.addAll(Objects.requireNonNull(options.where()).values());
-                        sb.append(new CollectionList<>(Objects.requireNonNull(options.where()).keySet()).map(s -> "`" + s + "`=?").join(" AND ")).append(" ");
+                        values.addAll(where.values().stream().map(Map.Entry::getValue).collect(Collectors.toList()));
+                        sb.append(new CollectionList<>(where.keySet()).map(s -> "`" + s + "`" + where.get(s).getKey().op + "?").join(" AND ")).append(" ");
                     }
                 } else throw new IllegalArgumentException("Where clause must be provided.");
                 if (options.limit() != null) sb.append(" LIMIT ").append(options.limit()).append(" ");
