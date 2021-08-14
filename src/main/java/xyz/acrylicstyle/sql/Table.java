@@ -3,6 +3,7 @@ package xyz.acrylicstyle.sql;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import util.CollectionList;
+import util.CollectionSet;
 import util.ICollection;
 import util.ICollectionList;
 import util.StringCollection;
@@ -10,6 +11,7 @@ import util.promise.rewrite.Promise;
 import xyz.acrylicstyle.sql.options.FindOptions;
 import xyz.acrylicstyle.sql.options.IncrementOptions;
 import xyz.acrylicstyle.sql.options.InsertOptions;
+import xyz.acrylicstyle.sql.options.Ops;
 import xyz.acrylicstyle.sql.options.UpsertOptions;
 
 import java.sql.Connection;
@@ -42,8 +44,6 @@ public class Table implements ITable {
 
     public StringCollection<TableDefinition> getDefinitions() { return tableData; }
 
-    public TableDefinition[] getDefinitionsArray() { return tableData.valuesArray(); }
-
     public String getName() { return name; }
 
     public Connection getConnection() { return connection; }
@@ -55,13 +55,14 @@ public class Table implements ITable {
                 StringBuilder sb = new StringBuilder("SELECT * FROM `" + getName() + "`");
                 CollectionList<Object> values = new CollectionList<>();
                 if (options != null) {
-                    if (options.where() != null && Objects.requireNonNull(options.where()).size() != 0) {
+                    Map<String, Map.Entry<Ops, Object>> where = options.where();
+                    if (where != null && where.size() != 0) {
                         sb.append(" WHERE ");
-                        if ("true".equals(Objects.requireNonNull(options.where()).get("true"))) {
+                        if ("true".equals(where.get("true").getValue())) {
                             sb.append("true");
                         } else {
-                            sb.append(new CollectionList<>(Objects.requireNonNull(options.where()).keySet()).map(s -> "`" + s + "`=?").join(" AND ")).append(" ");
-                            values.addAll(Objects.requireNonNull(options.where()).values());
+                            sb.append(new CollectionList<>(where.keySet()).map(s -> "`" + s + "` " + where.get(s).getKey().op + " ?").join(" AND ")).append(" ");
+                            values.addAll(where.values());
                         }
                     }
                     if (options.orderBy() != null && !Objects.equals(options.orderBy(), "")) {
@@ -119,8 +120,7 @@ public class Table implements ITable {
                 CollectionList<Object> values = new CollectionList<>();
                 if (options != null && options.where() != null) {
                     sb.append(" WHERE ");
-                    sb.append(" WHERE ");
-                    if ("true".equals(Objects.requireNonNull(options.where()).get("true"))) {
+                    if ("test".equals(Objects.requireNonNull(options.where()).get("true").getValue())) {
                         sb.append("true");
                     } else {
                         ICollection.asCollection(options.where()).forEach((k, v, i, a) -> {
@@ -143,8 +143,8 @@ public class Table implements ITable {
                 statement.executeUpdate();
                 statement.close();
                 context.resolve(dataList.map(td -> {
-                    StringCollection<Object> values2 = td.getValues();
-                    values2.add(field, value);
+                    Map<String, Object> values2 = td.getValues();
+                    values2.put(field, value);
                     td.setValues(values2);
                     return td;
                 }));
@@ -160,17 +160,17 @@ public class Table implements ITable {
         return new Promise<>(context -> {
             try {
                 CollectionList<TableData> dataList = findAll(options).complete();
-                String columns = options.getValues().keysList().map(s -> "`" + s + "` = ?").join(", ");
+                String columns = new CollectionSet<>(options.getValues().keySet()).map(s -> "`" + s + "` = ?").join(", ");
                 StringBuilder sb = new StringBuilder("UPDATE `" + getName() + "` SET " + columns);
-                @Nullable final Map<String, Object> where = options.where();
+                @Nullable final Map<String, Map.Entry<Ops, Object>> where = options.where();
                 if (where != null) {
                     sb.append(" WHERE ");
-                    sb.append(new CollectionList<>(where.keySet()).map(s -> "`" + s + "` = ?").join(" AND ")).append(" ");
+                    sb.append(new CollectionList<>(where.keySet()).map(s -> "`" + s + "` " + where.get(s).getKey().op + " ?").join(" AND ")).append(" ");
                 }
                 sb.append(";");
                 PreparedStatement statement = connection.prepareStatement(sb.toString());
                 AtomicInteger index = new AtomicInteger();
-                options.getValues().valuesList().foreach((o, i) -> {
+                new CollectionList<>(options.getValues().values()).foreach((o, i) -> {
                     try {
                         statement.setObject(index.incrementAndGet(), o);
                     } catch (SQLException e) {
@@ -214,13 +214,14 @@ public class Table implements ITable {
         Validate.isTrue(options != null && options.getValues() != null && options.getValues().size() != 0, "InsertOptions must not be null and has 1 key/value at least.");
         return new Promise<>(context -> {
             try {
-                String columns = options.getValues().keysList().map(s -> "`" + s + "`").join(", ");
-                String values = options.getValues().valuesList().map(s -> "?").join(", ");
+                String columns = new CollectionSet<>(options.getValues().keySet()).map(s -> "`" + s + "`").join(", ");
+                CollectionList<?> vals = new CollectionList<>(options.getValues().values());
+                String values = vals.map(s -> "?").join(", ");
                 String sql = "INSERT INTO `" + getName() + "` (" + columns + ") values (" + values + ")" + ";";
                 PreparedStatement statement = connection.prepareStatement(sql);
-                options.getValues().valuesList().foreach((o, i) -> {
+                vals.foreach((o, i) -> {
                     try {
-                        statement.setObject(i+1, o);
+                        statement.setObject(i + 1, o);
                     } catch (SQLException e) {
                         e.printStackTrace();
                     }

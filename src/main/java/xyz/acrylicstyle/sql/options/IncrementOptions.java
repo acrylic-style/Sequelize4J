@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import xyz.acrylicstyle.sql.Validate;
 
+import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -14,7 +15,7 @@ public interface IncrementOptions extends FindOptions {
 
     class Builder {
         @NotNull
-        private final Map<String, Object> where = new HashMap<>();
+        private final Map<String, Map.Entry<Ops, Object>> where = new HashMap<>();
 
         @NotNull
         private final HashMap<String, Integer> fieldsMap;
@@ -32,8 +33,14 @@ public interface IncrementOptions extends FindOptions {
         @Contract("_, _ -> this")
         @NotNull
         public Builder addWhere(@NotNull String key, @Nullable Object value) {
+            return addWhere(key, Ops.EQUAL, value);
+        }
+
+        @Contract("_, _, _ -> this")
+        @NotNull
+        public Builder addWhere(@NotNull String key, @NotNull Ops op, @Nullable Object value) {
             Validate.notNull(key, "key cannot be null");
-            where.put(key, value);
+            where.put(key, new AbstractMap.SimpleImmutableEntry<>(op, value));
             return this;
         }
 
@@ -65,7 +72,7 @@ public interface IncrementOptions extends FindOptions {
         public IncrementOptions build() {
             return new IncrementOptions() {
                 @Override
-                public @NotNull Map<String, Object> where() {
+                public @NotNull Map<String, Map.Entry<Ops, Object>> where() {
                     return Builder.this.where;
                 }
 

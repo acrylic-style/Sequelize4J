@@ -3,7 +3,6 @@ package xyz.acrylicstyle.sql;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import util.CollectionList;
-import util.StringCollection;
 import util.promise.rewrite.Promise;
 import xyz.acrylicstyle.sql.exceptions.IncompatibleTypeException;
 import xyz.acrylicstyle.sql.options.FindOptions;
@@ -16,19 +15,21 @@ import java.sql.Connection;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.HashMap;
+import java.util.Map;
 
 public class TableData implements ITable {
     private final Table table;
     private final Connection connection;
-    private final StringCollection<TableDefinition> definitions;
-    private StringCollection<Object> values;
+    private final Map<String, TableDefinition> definitions;
+    private Map<String, Object> values;
     private final String statement;
 
-    public TableData(Table table, Connection connection, StringCollection<TableDefinition> definitions, StringCollection<Object> values, String statement) {
+    public TableData(Table table, Connection connection, Map<String, TableDefinition> definitions, Map<String, Object> values, String statement) {
         this.table = table;
         this.connection = connection;
         this.definitions = definitions;
-        this.values = values == null ? new StringCollection<>() : values;
+        this.values = values == null ? new HashMap<>() : values;
         this.statement = statement;
     }
 
@@ -37,7 +38,7 @@ public class TableData implements ITable {
      * @return table definitions
      */
     @NotNull
-    public StringCollection<TableDefinition> getDefinitions() {
+    public Map<String, TableDefinition> getDefinitions() {
         return definitions;
     }
 
@@ -75,13 +76,13 @@ public class TableData implements ITable {
      * @return values (query result)
      */
     @NotNull
-    public StringCollection<Object> getValues() { return values; }
+    public Map<String, Object> getValues() { return values; }
 
     /**
      * An internal method used to update existing table data.
      * @param o new values
      */
-    void setValues(StringCollection<Object> o) { this.values = o == null ? new StringCollection<>() : o; }
+    void setValues(Map<String, Object> o) { this.values = o == null ? new HashMap<>() : o; }
 
     /**
      * {@inheritDoc}

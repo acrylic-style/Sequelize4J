@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import xyz.acrylicstyle.sql.Validate;
 
+import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -13,14 +14,14 @@ public interface FindOptions extends SortOptions {
     FindOptions ALL = ALL_BUILDER.build();
 
     @Nullable
-    default Map<String, Object> where() { return new HashMap<>(); }
+    default Map<String, Map.Entry<Ops, Object>> where() { return new HashMap<>(); }
 
     @Nullable
     default Integer limit() { return null; }
 
     class Builder {
         @NotNull
-        private final Map<String, Object> where;
+        private final Map<String, Map.Entry<Ops, Object>> where = new HashMap<>();
 
         @Nullable
         private String orderBy = null;
@@ -30,15 +31,17 @@ public interface FindOptions extends SortOptions {
 
         private Integer limit = null;
 
-        public Builder() {
-            this.where = new HashMap<>();
-        }
-
         @Contract("_, _ -> this")
         @NotNull
         public Builder addWhere(@NotNull String key, @Nullable Object value) {
+            return addWhere(key, Ops.EQUAL, value);
+        }
+
+        @Contract("_, _, _ -> this")
+        @NotNull
+        public Builder addWhere(@NotNull String key, @NotNull Ops op, @Nullable Object value) {
             Validate.notNull(key, "key cannot be null");
-            where.put(key, value);
+            where.put(key, new AbstractMap.SimpleImmutableEntry<>(op, value));
             return this;
         }
 
@@ -69,7 +72,7 @@ public interface FindOptions extends SortOptions {
         public FindOptions build() {
             return new FindOptions() {
                 @Override
-                public @NotNull Map<String, Object> where() {
+                public @NotNull Map<String, Map.Entry<Ops, Object>> where() {
                     return Builder.this.where;
                 }
 

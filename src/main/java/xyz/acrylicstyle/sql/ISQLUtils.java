@@ -49,6 +49,7 @@ public interface ISQLUtils extends SQLConnectionHolder {
     /**
      * Pings(tests) the connection and reconnect if it has the connection that is no longer valid.
      * @throws SQLException If unknown error occurred while pinging connection
+     * @throws IllegalStateException if connection hasn't made yet
      */
     void ping() throws SQLException;
 

@@ -2,21 +2,23 @@ package xyz.acrylicstyle.sql.options;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import util.StringCollection;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public interface InsertOptions {
     @Nullable
-    default StringCollection<Object> getValues() { return null; }
+    default Map<String, Object> getValues() { return null; }
 
     class Builder {
         @Nullable
-        private final StringCollection<Object> values;
+        private final Map<String, Object> values;
 
         public Builder() {
-            this(new StringCollection<>());
+            this(new HashMap<>());
         }
 
-        public Builder(@Nullable StringCollection<Object> values) {
+        public Builder(@Nullable Map<String, Object> values) {
             this.values = values;
         }
 
@@ -30,7 +32,7 @@ public interface InsertOptions {
         public InsertOptions build() {
             return new InsertOptions() {
                 @Override
-                public StringCollection<Object> getValues() {
+                public Map<String, Object> getValues() {
                     return Builder.this.values;
                 }
             };

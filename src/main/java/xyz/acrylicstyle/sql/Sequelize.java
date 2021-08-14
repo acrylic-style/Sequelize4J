@@ -193,19 +193,9 @@ public class Sequelize implements ISQLUtils {
     @SuppressWarnings("SqlNoDataSourceInspection")
     @Override
     public void ping() throws SQLException {
-        if (connection.isClosed() || !connection.isValid(3000)) {
-            authenticate();
-            return;
-        }
-        try {
-            if (connection == null) throw new IllegalStateException("Connection hasn't made yet.");
-            Statement statement = connection.createStatement();
-            statement.execute("select 1;");
-        } catch (Exception e) {
-            System.err.println("An error occurred while pinging, reconnecting to the database. (you may safely ignore this error unless it's working incorrectly)");
-            e.printStackTrace();
-            authenticate();
-        }
+        if (connection == null) throw new IllegalStateException("Connection hasn't made yet.");
+        Statement statement = connection.createStatement();
+        statement.execute("select 1;");
     }
 
     /**
@@ -292,12 +282,9 @@ public class Sequelize implements ISQLUtils {
             if (def.isPrimaryKey()) primaryKey.set(def);
             if (!(def.getType() instanceof ArrayDataType)) {
                 definitions.add(def.getName(), def);
-            }
-        }
-        for (TableDefinition def : definitionArr) {
-            if (def.getType() instanceof ArrayDataType) {
+            } else {
                 if (primaryKey.get() == null) throw new IllegalArgumentException("Primary key is required for ArrayDataType");
-                if (primaryKey.get() == def) throw new IllegalArgumentException("Primary key cannot be equals with ArrayDataType");
+                if (primaryKey.get() == def) throw new IllegalArgumentException("Primary key cannot be same as ArrayDataType");
                 define(def.getName() + "_array", new TableDefinition[] {
                         primaryKey.get().copy("k"),
                         new TableDefinition.Builder("v", ((ArrayDataType<?>) def.getType()).arrayType)
