@@ -4,7 +4,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import util.Collection;
 import util.CollectionList;
-import util.CollectionSet;
 import util.ICollection;
 import util.ICollectionList;
 import util.StringCollection;
@@ -86,7 +85,6 @@ public class Table implements ITable {
                     }
                     if (options.limit() != null) sb.append(" LIMIT ").append(options.limit());
                 }
-                sb.append(";");
                 eventEmitter.emit(Events.EXECUTE, sb.toString());
                 PreparedStatement statement = connection.prepareStatement(sb.toString());
                 values.foreach((o, i) -> {
@@ -147,7 +145,6 @@ public class Table implements ITable {
                         });
                     }
                 }
-                sb.append(";");
                 eventEmitter.emit(Events.EXECUTE, sb.toString());
                 PreparedStatement statement = connection.prepareStatement(sb.toString());
                 statement.setObject(1, value);
@@ -190,7 +187,6 @@ public class Table implements ITable {
                     sb.append(" WHERE ");
                     sb.append(new CollectionList<>(where.keySet()).map(s -> "`" + s + "` " + where.get(s).getKey().op + " ?").join(" AND ")).append(" ");
                 }
-                sb.append(";");
                 eventEmitter.emit(Events.EXECUTE, sb.toString());
                 PreparedStatement statement = connection.prepareStatement(sb.toString());
                 AtomicInteger index = new AtomicInteger();
@@ -238,22 +234,27 @@ public class Table implements ITable {
         Validate.isTrue(options != null && options.getValues() != null && options.getValues().size() != 0, "InsertOptions must not be null and has 1 key/value at least.");
         return new Promise<>(context -> {
             try {
-                String columns = new CollectionSet<>(options.getValues().keySet()).map(s -> "`" + s + "`").join(", ");
-                CollectionList<?> vals = new CollectionList<>(options.getValues().values());
-                String values = vals.map(s -> "?").join(", ");
-                String sql = "INSERT INTO `" + getName() + "` (" + columns + ") values (" + values + ")" + ";";
-                eventEmitter.emit(Events.EXECUTE, sql);
-                PreparedStatement statement = connection.prepareStatement(sql);
-                vals.foreach((o, i) -> {
+                List<Object> objects = new ArrayList<>();
+                StringBuilder sb = new StringBuilder("INSERT INTO `").append(getName()).append("` (");
+                new Collection<>(options.getValues()).forEach((key, value, i, a) -> {
+                    if (i > 0) sb.append(", ");
+                    sb.append("`").append(key).append("`");
+                    objects.add(value);
+                });
+                sb.append(") VALUES (").append(new CollectionList<>(options.getValues().values()).map(s -> "?").join(", ")).append(")");
+                eventEmitter.emit(Events.EXECUTE, sb.toString());
+                PreparedStatement statement = connection.prepareStatement(sb.toString());
+                AtomicInteger i = new AtomicInteger();
+                objects.forEach(o -> {
                     try {
-                        statement.setObject(i + 1, o);
+                        statement.setObject(i.incrementAndGet(), o);
                     } catch (SQLException e) {
                         e.printStackTrace();
                     }
                 });
                 statement.executeUpdate();
                 statement.close();
-                context.resolve(new TableData(Table.this, connection, getDefinitions(), options.getValues(), sql));
+                context.resolve(new TableData(Table.this, connection, getDefinitions(), options.getValues(), sb.toString()));
             } catch (SQLException e) {
                 context.reject(new RuntimeException(e));
             }
@@ -285,7 +286,6 @@ public class Table implements ITable {
                     }
                 } else throw new IllegalArgumentException("Where clause must be provided.");
                 if (options.limit() != null) sb.append(" LIMIT ").append(options.limit()).append(" ");
-                sb.append(";");
                 eventEmitter.emit(Events.EXECUTE, sb.toString());
                 PreparedStatement statement = connection.prepareStatement(sb.toString());
                 AtomicReference<SQLException> exception = new AtomicReference<>();

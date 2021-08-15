@@ -6,7 +6,7 @@
 
     <groupId>xyz.acrylicstyle</groupId>
     <artifactId>sequelize4j</artifactId>
-    <version>0.5.2</version>
+    <version>0.5.3</version>
     <build>
         <finalName>sequelize4j</finalName>
         <plugins>
