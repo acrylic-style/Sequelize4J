@@ -2,7 +2,7 @@ package xyz.acrylicstyle.sql;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import util.CollectionList;
+import util.collection.CollectionList;
 import util.promise.rewrite.Promise;
 import xyz.acrylicstyle.sql.exceptions.IncompatibleTypeException;
 import xyz.acrylicstyle.sql.options.FindOptions;

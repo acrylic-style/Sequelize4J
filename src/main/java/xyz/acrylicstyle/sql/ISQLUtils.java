@@ -2,7 +2,7 @@ package xyz.acrylicstyle.sql;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import util.StringCollection;
+import util.collection.StringCollection;
 
 import java.sql.Connection;
 import java.sql.Driver;

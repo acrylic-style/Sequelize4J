@@ -6,7 +6,10 @@
 
     <groupId>xyz.acrylicstyle</groupId>
     <artifactId>sequelize4j</artifactId>
-    <version>0.5.3</version>
+    <version>0.6.0</version>
+    <properties>
+        <java-util.version>0.16.2</java-util.version>
+    </properties>
     <build>
         <finalName>sequelize4j</finalName>
         <plugins>
@@ -50,9 +53,24 @@
     </repositories>
     <dependencies>
         <dependency>
-            <groupId>xyz.acrylicstyle</groupId>
-            <artifactId>java-util-all</artifactId>
-            <version>0.15.4</version>
+            <groupId>xyz.acrylicstyle.util</groupId>
+            <artifactId>common</artifactId>
+            <version>${java-util.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>xyz.acrylicstyle.util</groupId>
+            <artifactId>promise</artifactId>
+            <version>${java-util.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>xyz.acrylicstyle.util</groupId>
+            <artifactId>event-emitter</artifactId>
+            <version>${java-util.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>xyz.acrylicstyle.util</groupId>
+            <artifactId>collection</artifactId>
+            <version>${java-util.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jetbrains</groupId>

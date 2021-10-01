@@ -2,9 +2,9 @@ package xyz.acrylicstyle.sql;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import util.CollectionList;
-import util.ICollectionList;
-import util.StringCollection;
+import util.collection.CollectionList;
+import util.collection.ICollectionList;
+import util.collection.StringCollection;
 
 import java.sql.Connection;
 import java.sql.Driver;

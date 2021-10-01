@@ -1,8 +1,8 @@
 package xyz.acrylicstyle.sql;
 
 import org.jetbrains.annotations.NotNull;
-import util.Collection;
-import util.CollectionList;
+import util.collection.Collection;
+import util.collection.CollectionList;
 
 /**
  * @deprecated Draft API, may not work as expected.

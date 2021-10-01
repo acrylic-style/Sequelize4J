@@ -2,12 +2,12 @@ package xyz.acrylicstyle.sql;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import util.Collection;
-import util.CollectionList;
-import util.ICollection;
-import util.ICollectionList;
-import util.StringCollection;
-import util.TypedEventEmitter;
+import util.collection.Collection;
+import util.collection.CollectionList;
+import util.collection.ICollection;
+import util.collection.ICollectionList;
+import util.collection.StringCollection;
+import util.eventEmitter.TypedEventEmitter;
 import util.promise.rewrite.Promise;
 import xyz.acrylicstyle.sql.options.FindOptions;
 import xyz.acrylicstyle.sql.options.IncrementOptions;
