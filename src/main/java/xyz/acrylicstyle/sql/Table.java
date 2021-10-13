@@ -86,6 +86,7 @@ public class Table implements ITable {
                     if (options.limit() != null) sb.append(" LIMIT ").append(options.limit());
                 }
                 eventEmitter.emit(Events.EXECUTE, sb.toString());
+                long start = System.currentTimeMillis();
                 PreparedStatement statement = connection.prepareStatement(sb.toString());
                 values.foreach((o, i) -> {
                     try {
@@ -109,6 +110,7 @@ public class Table implements ITable {
                 }
                 result.close();
                 statement.close();
+                eventEmitter.emit(Events.EXECUTED, sb.toString(), System.currentTimeMillis() - start);
                 context.resolve(tableData);
             } catch (SQLException e) {
                 context.reject(new RuntimeException(e));
@@ -146,6 +148,7 @@ public class Table implements ITable {
                     }
                 }
                 eventEmitter.emit(Events.EXECUTE, sb.toString());
+                long start = System.currentTimeMillis();
                 PreparedStatement statement = connection.prepareStatement(sb.toString());
                 statement.setObject(1, value);
                 values.foreach((o, i) -> {
@@ -157,6 +160,7 @@ public class Table implements ITable {
                 });
                 statement.executeUpdate();
                 statement.close();
+                eventEmitter.emit(Events.EXECUTED, sb.toString(), System.currentTimeMillis() - start);
                 context.resolve(dataList.map(td -> {
                     Map<String, Object> values2 = td.getValues();
                     values2.put(field, value);
@@ -188,6 +192,7 @@ public class Table implements ITable {
                     sb.append(new CollectionList<>(where.keySet()).map(s -> "`" + s + "` " + where.get(s).getKey().op + " ?").join(" AND ")).append(" ");
                 }
                 eventEmitter.emit(Events.EXECUTE, sb.toString());
+                long start = System.currentTimeMillis();
                 PreparedStatement statement = connection.prepareStatement(sb.toString());
                 AtomicInteger index = new AtomicInteger();
                 objects.forEach(o -> {
@@ -208,6 +213,7 @@ public class Table implements ITable {
                 }
                 statement.executeUpdate();
                 statement.close();
+                eventEmitter.emit(Events.EXECUTED, sb.toString(), System.currentTimeMillis() - start);
                 context.resolve(dataList.map(td -> {
                     td.setValues(options.getValues());
                     return td;
@@ -243,6 +249,7 @@ public class Table implements ITable {
                 });
                 sb.append(") VALUES (").append(new CollectionList<>(options.getValues().values()).map(s -> "?").join(", ")).append(")");
                 eventEmitter.emit(Events.EXECUTE, sb.toString());
+                long start = System.currentTimeMillis();
                 PreparedStatement statement = connection.prepareStatement(sb.toString());
                 AtomicInteger i = new AtomicInteger();
                 objects.forEach(o -> {
@@ -254,6 +261,7 @@ public class Table implements ITable {
                 });
                 statement.executeUpdate();
                 statement.close();
+                eventEmitter.emit(Events.EXECUTED, sb.toString(), System.currentTimeMillis() - start);
                 context.resolve(new TableData(Table.this, connection, getDefinitions(), options.getValues(), sb.toString()));
             } catch (SQLException e) {
                 context.reject(new RuntimeException(e));
@@ -287,6 +295,7 @@ public class Table implements ITable {
                 } else throw new IllegalArgumentException("Where clause must be provided.");
                 if (options.limit() != null) sb.append(" LIMIT ").append(options.limit()).append(" ");
                 eventEmitter.emit(Events.EXECUTE, sb.toString());
+                long start = System.currentTimeMillis();
                 PreparedStatement statement = connection.prepareStatement(sb.toString());
                 AtomicReference<SQLException> exception = new AtomicReference<>();
                 values.foreach((o2, i) -> {
@@ -300,6 +309,7 @@ public class Table implements ITable {
                 if (exception.get() != null) throw exception.get();
                 statement.executeUpdate();
                 statement.close();
+                eventEmitter.emit(Events.EXECUTED, sb.toString(), System.currentTimeMillis() - start);
                 context.resolve(dataList);
             } catch (SQLException e) {
                 context.reject(new RuntimeException(e));
@@ -333,7 +343,9 @@ public class Table implements ITable {
             try {
                 String sql = "DROP TABLE IF EXISTS `" + getName() + "`";
                 eventEmitter.emit(Events.EXECUTE, sql);
+                long start = System.currentTimeMillis();
                 connection.createStatement().executeUpdate(sql);
+                eventEmitter.emit(Events.EXECUTED, sql, System.currentTimeMillis() - start);
                 context.resolve(null);
             } catch (SQLException e) {
                 context.reject(new RuntimeException(e));
@@ -347,6 +359,15 @@ public class Table implements ITable {
     }
 
     public enum Events {
+        /**
+         * Fired when the query is about to be executed (pre-execute).
+         * Arguments: [{@link String} (sql)]
+         */
         EXECUTE,
+        /**
+         * Fired when the query was executed (post-execute).
+         * Arguments: [{@link String} (sql), long (time took to execute)]
+         */
+        EXECUTED,
     }
 }

@@ -6,9 +6,9 @@
 
     <groupId>xyz.acrylicstyle</groupId>
     <artifactId>sequelize4j</artifactId>
-    <version>0.6.0</version>
+    <version>0.6.1</version>
     <properties>
-        <java-util.version>0.16.2</java-util.version>
+        <java-util.version>0.16.4</java-util.version>
     </properties>
     <build>
         <finalName>sequelize4j</finalName>
