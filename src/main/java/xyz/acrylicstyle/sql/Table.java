@@ -122,7 +122,6 @@ public class Table implements ITable {
     @Override
     public @NotNull Promise<@Nullable TableData> findOne(FindOptions options) {
         return Promise.create("Sequelize Thread Pool (findOne) #%d", context -> {
-            findAll(options).then(list -> list.size() == 0 ? null : list.first());
             CollectionList<TableData> list = findAll(options).complete();
             context.resolve(list.size() == 0 ? null : list.first());
         });
